@@ -29,13 +29,37 @@ function App() {
   // Get the most recent day's data for the top cards
   const today = telemetry[telemetry.length - 1] || {};
 
+  // Determine color based on Risk Level
+  const getRiskColor = (level) => {
+    switch(level) {
+      case 'LOW': return '#4ade80';      // Green
+      case 'GUARDED': return '#facc15';  // Yellow
+      case 'ELEVATED': return '#fb923c'; // Orange
+      case 'HIGH': return '#f87171';     // Red
+      case 'CRITICAL': return '#dc2626'; // Dark Red
+      default: return '#94a3b8';         // Gray fallback
+    }
+  };
+
+  const riskColor = getRiskColor(today.poko_risk_level);
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Po-Ko Developer Capacity Framework</h1>
-        <span className="status-badge">
-          {today.Sensor_Gap_Flag ? "⚠️ Sensor Drop Detected" : "🟢 Telemetry Sync Active"}
-        </span>
+        <div className="header-titles">
+          <h1>Po-Ko Developer Capacity Framework</h1>
+        <p className="subtitle">Proactive Care & Risk Analytics</p>
+        </div>
+        {/* The Po-Ko Risk Score Circle */}
+        <div className="score-container" style={{ borderColor: riskColor }}>
+          <div className="score-value" style={{ color: riskColor }}>
+            {today.poko_score || '--'}
+          </div>
+          <div className="score-label">Po-Ko Score</div>
+          <div className="score-level" style={{ color: riskColor }}>
+            {today.poko_risk_level || 'ANALYZING'}
+          </div>
+        </div>
       </header>
 
       {/* Top Metric Cards */}
@@ -91,8 +115,27 @@ function App() {
               />
               {/* Plot the 7-day Baseline as a smooth reference trend */}
               <Line type="monotone" dataKey="7d_Avg_HRV_ms" stroke="#555" strokeWidth={2} dot={false} name="7-Day Baseline" />
-              {/* Plot the daily Overnight HRV */}
-              <Line type="monotone" dataKey="Overnight_HRV_ms" stroke="#4ade80" strokeWidth={3} dot={{ r: 4 }} name="Daily HRV" />
+              {/* Daily HRV with logic to show Red/Orange dots on bad days */}
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="Overnight_HRV_ms" 
+                stroke="#4ade80" 
+                strokeWidth={3} 
+                name="Daily HRV"
+                dot={(props) => {
+                  const { cx, cy, payload, key } = props;
+                  // Flag days where the final calculated score was high risk
+                  if (payload.poko_score >= 8) {
+                    return <circle key={key} cx={cx} cy={cy} r={6} fill="#dc2626" stroke="#7f1d1d" strokeWidth={2} />;
+                  }
+                  if (payload.poko_score >= 6) {
+                    return <circle key={key} cx={cx} cy={cy} r={5} fill="#fb923c" stroke="#9a3412" strokeWidth={2} />;
+                  }
+                  return <circle key={key} cx={cx} cy={cy} r={4} fill="#4ade80" stroke="none" />;
+                }}
+                activeDot={{ r: 8 }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>

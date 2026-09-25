@@ -3,6 +3,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { calculatePoKoScore } from './pokoScoring.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,12 +55,23 @@ app.get('/api/health', (req, res) => {
 app.get('/api/telemetry', (req, res) => {
   const history = readTelemetryData();
   const limit = parseInt(req.query.limit, 10);
+
+  // Map over the history to inject the calculated Po-Ko score for each day
+  const scoredHistory = history.map(dayData => {
+    const scoringResult = calculatePoKoScore(dayData);
+    return {
+      ...dayData,
+      poko_score: scoringResult.score,
+      poko_risk_level: scoringResult.riskLevel,
+      poko_components: scoringResult.components
+    };
+  });
   
   if (!isNaN(limit) && limit > 0) {
-    return res.json(history.slice(0, limit));
+    return res.json(scoredHistory.slice(0, limit));
   }
   
-  res.json(history);
+  res.json(scoredHistory);
 });
 
 // 3. POST New Daily Biometric Entry (Manual / AI Log)
