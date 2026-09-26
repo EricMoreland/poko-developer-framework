@@ -1,14 +1,16 @@
 {
   "mcpServers": {
-    "my-server": {
+    "poko-developer-framework": {
       "command": "node",
-      "args": ["server.js"],
-      "cwd": "/path/to/project",
-      "env": {
-        "API_KEY": "your_key_here"
-      },
-      "alwaysAllow": ["tool_name_to_auto_approve"],
-      "disabled": false
+      "args": ["server/mcp.js"],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "disabled": false,
+      "alwaysAllow": [
+        "get_poko_status",
+        "submit_survey",
+        "get_advice"
+      ]
     }
   }
 }

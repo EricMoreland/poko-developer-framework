@@ -102,16 +102,22 @@ app.post('/api/telemetry', (req, res) => {
     return res.status(409).json({ error: `Telemetry already logged for ${newEntry.Date}.` });
   }
 
-  if (newEntry.Bedtime_Decimal && newEntry.Wake_Time_Decimal && newEntry.Sleep_Duration_Minutes) {
+  if (newEntry.Bedtime_Decimal && newEntry.Wake_Time_Decimal) {
     const bt = parseFloat(newEntry.Bedtime_Decimal);
     const wt = parseFloat(newEntry.Wake_Time_Decimal);
     const inBedHrs  = bt > wt ? (24.0 - bt) + wt : wt - bt;
     const inBedMins = Math.round(inBedHrs * 60 * 10) / 10;
-    const gapMins   = Math.round((inBedMins - parseFloat(newEntry.Sleep_Duration_Minutes)) * 10) / 10;
 
-    newEntry.Time_In_Bed_Minutes      = inBedMins;
-    newEntry.Unrecorded_Gaps_Minutes  = gapMins;
-    newEntry.Sensor_Gap_Flag          = gapMins > 60.0;
+    newEntry.Time_In_Bed_Minutes = inBedMins;
+
+    if (newEntry.Sleep_Duration_Minutes) {
+      const gapMins = Math.round((inBedMins - parseFloat(newEntry.Sleep_Duration_Minutes)) * 10) / 10;
+      newEntry.Unrecorded_Gaps_Minutes = gapMins;
+      newEntry.Sensor_Gap_Flag         = gapMins > 60.0;
+    } else {
+      newEntry.Unrecorded_Gaps_Minutes = newEntry.Unrecorded_Gaps_Minutes ?? 0;
+      newEntry.Sensor_Gap_Flag         = newEntry.Sensor_Gap_Flag ?? false;
+    }
   } else {
     newEntry.Time_In_Bed_Minutes     = newEntry.Time_In_Bed_Minutes     || null;
     newEntry.Unrecorded_Gaps_Minutes = newEntry.Unrecorded_Gaps_Minutes || null;
