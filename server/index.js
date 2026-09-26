@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { calculatePoKoScore, analyzeTrend, getSurveyQuestions } from './pokoScoring.js';
 import { classifyCognitiveWeight } from './codeGuardian.js';
 
+// ES modules don't expose __filename/__dirname natively; reconstruct them from
+// the module's own URL so path.join() calls below resolve relative to this file.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -87,7 +89,9 @@ app.get('/api/telemetry', (req, res) => {
   const rawHistory = readTelemetryData();
   const limit = parseInt(req.query.limit, 10);
 
-  // Reverse so index 0 = oldest, last index = most recent
+  // JSON is stored newest-first; flip to oldest-first so the array index
+  // corresponds to chronological order — required for the sliding 3-day
+  // trend window below (index - 2, index - 1, index).
   const history = [...rawHistory].reverse();
 
   const scoredHistory = history.map((dayData, index) => {
@@ -95,6 +99,8 @@ app.get('/api/telemetry', (req, res) => {
     let trendWarning = false;
     let trendDetails = {};
 
+    // The 72-Hour Rebound Rule needs at least 3 consecutive days; skip until
+    // index 2 so we always have [day-2, day-1, today] available.
     if (index >= 2) {
       const last3Days = [
         history[index - 2],
@@ -106,10 +112,12 @@ app.get('/api/telemetry', (req, res) => {
       trendDetails = trendResult;
     }
 
-    // Look up any stored external factors for this day
+    // Look up any stored survey answers for this calendar day
     const externalEntry = getExternalFactorsForDate(dayData.Date);
     const externalFactors = externalEntry ? externalEntry.factors : null;
 
+    // Spread trendWarning into the metrics object so calculatePoKoScore can
+    // apply the trend boost without needing a separate parameter.
     const scoringResult = calculatePoKoScore(
       { ...dayData, trendWarning },
       externalFactors
@@ -127,6 +135,8 @@ app.get('/api/telemetry', (req, res) => {
     };
   });
 
+  // Re-reverse to newest-first before slicing so the client always receives
+  // the most recent N days when a limit is applied.
   const resultToSend = scoredHistory.reverse();
 
   if (!isNaN(limit) && limit > 0) {
@@ -148,8 +158,13 @@ app.post('/api/telemetry', (req, res) => {
   if (newEntry.Bedtime_Decimal && newEntry.Wake_Time_Decimal && newEntry.Sleep_Duration_Minutes) {
     const bt = parseFloat(newEntry.Bedtime_Decimal);
     const wt = parseFloat(newEntry.Wake_Time_Decimal);
+    // Handle midnight crossover: if bedtime decimal > wake time decimal the
+    // person slept through midnight, so add the hours-until-midnight to the
+    // wake time to get the true time-in-bed duration.
     const inBedHrs = bt > wt ? (24.0 - bt) + wt : wt - bt;
     const inBedMins = Math.round(inBedHrs * 60 * 10) / 10;
+    // Sensor gap = time between bed and rise that the wearable didn't record.
+    // Values above 60 min are flagged as likely sensor removal.
     const gapMins = Math.round((inBedMins - parseFloat(newEntry.Sleep_Duration_Minutes)) * 10) / 10;
 
     newEntry.Time_In_Bed_Minutes = inBedMins;
@@ -189,18 +204,23 @@ app.post('/api/guardian/classify', (req, res) => {
     return res.status(400).json({ error: 'filesChanged is required and must be a number.' });
   }
 
+  // Allow callers (e.g. the Bob MCP tool) to supply isCompromised directly.
+  // If omitted, derive it on-the-fly from the most recent telemetry record so
+  // the API remains self-contained for clients that don't track health state.
   let isCompromised;
 
   if (typeof isCompromisedPayload === 'boolean') {
     isCompromised = isCompromisedPayload;
   } else {
     const history = readTelemetryData();
+    // history[0] is the most recent entry (newest-first storage)
     const latestEntry = history[0];
 
     if (latestEntry) {
       const todayDate = latestEntry.Date;
       const externalEntry = getExternalFactorsForDate(todayDate);
       const externalFactors = externalEntry ? externalEntry.factors : null;
+      // Score >= 8 maps to HIGH or CRITICAL risk — the "Active Support State" threshold
       const { score, riskLevel } = calculatePoKoScore(latestEntry, externalFactors);
       isCompromised = score >= 8 || riskLevel === 'HIGH' || riskLevel === 'CRITICAL';
     } else {

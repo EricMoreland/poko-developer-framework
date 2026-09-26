@@ -164,13 +164,16 @@ const TREND_BOOST = 1.5;
  * @returns {number}
  */
 function scoreHRV(hrv, baseline) {
+  // Guard: missing or zero baseline would produce a meaningless ratio.
+  // Return a mid-range penalty (5) rather than 0 to avoid masking real risk.
   if (!baseline || baseline <= 0) return 5;
+  // Positive drop value means HRV is below baseline (worsening recovery).
   const drop = (baseline - hrv) / baseline;
-  if (drop <= HRV_DROP.NONE)    return 0;
-  if (drop < HRV_DROP.MILD)     return 2;
-  if (drop < HRV_DROP.MODERATE) return 5;
-  if (drop < HRV_DROP.SEVERE)   return 7;
-  return 10;
+  if (drop <= HRV_DROP.NONE)    return 0;  // HRV at or above baseline — fully recovered
+  if (drop < HRV_DROP.MILD)     return 2;  // <8% drop — minor, within normal variation
+  if (drop < HRV_DROP.MODERATE) return 5;  // 8–15% drop — meaningful signal
+  if (drop < HRV_DROP.SEVERE)   return 7;  // 15–25% drop — significant physiological stress
+  return 10;                               // >25% drop — severe suppression
 }
 
 /**
@@ -218,7 +221,7 @@ function scoreSensorGap(sensorGapFlag) {
  * @param {object} externalFactors - Key/value map of boolean external factors
  * @returns {{
  *   totalPenalty: number,         // Sum of all applicable external penalties
- *   activeFactor: string[],       // Which individual factors were true
+ *   activeFactors: string[],      // Which individual factors were true
  *   activeCompounds: string[],    // Which compound interactions fired
  *   breakdown: object             // Per-factor penalty amounts for transparency
  * }}
@@ -385,12 +388,17 @@ export function getSurveyQuestions(dailyMetrics) {
 
   const triggered = SURVEY_QUESTIONS
     .filter((q) => {
+      // Wrap each trigger in a try/catch: a question with a missing field in
+      // dailyMetrics should be silently skipped rather than crashing the endpoint.
       try { return q.trigger(dailyMetrics); }
       catch { return false; }
     })
+    // Sort ascending by priority so the most-relevant questions are at the front
     .sort((a, b) => a.priority - b.priority)
+    // Cap at 2 questions to keep the micro-survey short and non-intrusive
     .slice(0, 2);
 
+  // Strip internal fields (priority, trigger) before returning to the client
   return triggered.map(({ id, question }) => ({ id, question }));
 }
 
@@ -447,6 +455,8 @@ export function calculatePoKoScore(dailyMetrics, externalFactors = null) {
   };
 
   // --- Weighted biometric base score ---
+  // Each component returns 0–10; multiply by its weight so the weighted sum
+  // is also in the 0–10 range before external factor additive penalties.
   let rawScore =
     components.hrv       * WEIGHTS.hrv   +
     components.sleep     * WEIGHTS.sleep  +
@@ -454,13 +464,19 @@ export function calculatePoKoScore(dailyMetrics, externalFactors = null) {
     components.sensorGap * WEIGHTS.sensorGap;
 
   // --- 72-Hour Rebound Rule boost ---
+  // Adds a flat 1.5-point penalty when the multi-day trend detector fires,
+  // pushing the score toward HIGH/CRITICAL even if today's biometrics look OK.
   if (trendWarning) rawScore += TREND_BOOST;
 
   // --- External factor fusion ---
+  // Additive penalties from self-reported survey answers are layered on top of
+  // the biometric base, allowing the score to exceed 10 before the clamp.
   const externalFactorResult = scoreExternalFactors(dailyMetrics, externalFactors);
   rawScore += externalFactorResult.totalPenalty;
 
   // --- Clamp to [1, 10] and round to one decimal ---
+  // Floor at 1 so "all metrics perfect" still produces a meaningful score,
+  // not 0. Ceiling at 10 is the Active Support State boundary.
   const score = Math.min(10, Math.max(1, Math.round(rawScore * 10) / 10));
 
   // --- Derive human-readable risk tier ---
@@ -511,11 +527,13 @@ export function analyzeTrend(historicalDataArray) {
     };
   }
 
+  // Walk forward through the array; if any consecutive pair breaks the
+  // expected direction, the trend is not monotonically falling/rising.
   let hrvFalling = true;
   for (let i = 1; i < historicalDataArray.length; i++) {
     if (historicalDataArray[i].Overnight_HRV_ms >= historicalDataArray[i - 1].Overnight_HRV_ms) {
       hrvFalling = false;
-      break;
+      break; // Early-exit — further checks are irrelevant once broken
     }
   }
 
@@ -523,7 +541,7 @@ export function analyzeTrend(historicalDataArray) {
   for (let i = 1; i < historicalDataArray.length; i++) {
     if (historicalDataArray[i].Avg_Stress <= historicalDataArray[i - 1].Avg_Stress) {
       stressRising = false;
-      break;
+      break; // Early-exit — further checks are irrelevant once broken
     }
   }
 

@@ -129,3 +129,24 @@ body {
   font-weight: 700;
   margin-top: 2px;
 }
+
+/* Full-viewport overlay shown while the initial data fetch resolves */
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.1rem;
+  color: #94a3b8;
+}
+
+/* Wraps the Recharts ResponsiveContainer — explicit height prevents a 0px collapse */
+.chart-container {
+  width: 100%;
+  min-height: 300px;
+}
+
+/* Stress card visual modifier — adds a subtle amber left-border accent */
+.alert-card {
+  border-left: 3px solid #facc15;
+}

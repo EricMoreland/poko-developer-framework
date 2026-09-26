@@ -14,22 +14,28 @@ function App() {
   const [showSurvey, setShowSurvey]         = useState(false);
   const [surveyDismissed, setSurveyDismissed] = useState(false);
 
-  // Fetch telemetry data
+  // Fetches the 30 most-recent telemetry days from the server and stores them
+  // oldest-first so the Recharts LineChart renders left-to-right chronologically.
   function fetchTelemetry() {
     return fetch('/api/telemetry?limit=30')
       .then((res) => res.json())
       .then((data) => {
-        setTelemetry(data.reverse()); // oldest → newest for chart
+        // API returns newest-first; reverse so index 0 = oldest for the chart x-axis
+        setTelemetry(data.reverse());
       });
   }
 
   useEffect(() => {
-    // Load telemetry and survey questions in parallel
+    // Fire both requests simultaneously to minimise initial load time.
+    // The destructured [, surveyData] skips the telemetry promise result
+    // because fetchTelemetry() already sets state internally.
     Promise.all([
       fetchTelemetry(),
       fetch('/api/survey/questions').then((r) => r.json()),
     ])
       .then(([, surveyData]) => {
+        // Only surface the survey modal when today's questions haven't been
+        // answered yet and the server returned at least one triggered question.
         if (!surveyData.alreadyAnswered && surveyData.questions.length > 0) {
           setSurveyDate(surveyData.date);
           setSurveyQuestions(surveyData.questions);
@@ -42,10 +48,12 @@ function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Called when the user submits survey answers — refresh scores immediately
+  // Re-fetches telemetry after survey submission so the dashboard cards and chart
+  // immediately reflect the newly fused external-factor penalties in the score.
   function handleSurveySubmit(updatedScore) {
     setShowSurvey(false);
-    // Re-fetch so the dashboard reflects the new fused score
+    // updatedScore is passed from MicroSurvey but the full telemetry re-fetch is
+    // simpler than trying to patch a single entry in the 30-day array.
     fetchTelemetry().catch(console.error);
   }
 
@@ -58,18 +66,20 @@ function App() {
     return <div className="loading-screen">Booting Po-Ko Local Engine...</div>;
   }
 
-  // Get the most recent day's data for the top cards
+  // Telemetry is sorted oldest→newest; the last element is always "today".
+  // Fall back to an empty object so every optional-chain below renders '--'.
   const today = telemetry[telemetry.length - 1] || {};
 
-  // Determine color based on Risk Level
+  // Maps each Po-Ko risk tier to a matching colour used in the score circle,
+  // trend-alert border and chart dot fills. Defaults to slate for missing data.
   const getRiskColor = (level) => {
     switch(level) {
-      case 'LOW':      return '#4ade80';
-      case 'GUARDED':  return '#facc15';
-      case 'ELEVATED': return '#fb923c';
-      case 'HIGH':     return '#f87171';
-      case 'CRITICAL': return '#dc2626';
-      default:         return '#94a3b8';
+      case 'LOW':      return '#4ade80'; // green
+      case 'GUARDED':  return '#facc15'; // yellow
+      case 'ELEVATED': return '#fb923c'; // orange
+      case 'HIGH':     return '#f87171'; // light red
+      case 'CRITICAL': return '#dc2626'; // deep red
+      default:         return '#94a3b8'; // slate — data not yet computed
     }
   };
 
@@ -197,6 +207,7 @@ function App() {
         <div className="card">
           <Activity className="card-icon text-orange" />
           <h3>Time in Bed</h3>
+          {/* Convert stored minutes to hours with one decimal place for readability */}
           <p className="card-value">{today.Time_In_Bed_Minutes ? Math.round(today.Time_In_Bed_Minutes / 60 * 10) / 10 : '--'} hrs</p>
           <p className="card-subtitle">Unrecorded Gap: {today.Unrecorded_Gaps_Minutes || 0} mins</p>
         </div>
@@ -224,14 +235,20 @@ function App() {
                   return `${date.getMonth() + 1}/${date.getDate()}`;
                 }}
               />
-              <YAxis stroke="#888" domain={['dataMin - 10', 'dataMax + 10']} />
+              {/* yAxisId="left" matches the id on the Overnight HRV Line below */}
+              <YAxis yAxisId="left" stroke="#888" domain={['dataMin - 10', 'dataMax + 10']} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#222', border: 'none', borderRadius: '8px' }}
                 itemStyle={{ color: '#fff' }}
               />
-              {/* 7-day Baseline reference trend */}
+              {/* Dim grey baseline so the daily HRV line stands out against it */}
               <Line type="monotone" dataKey="7d_Avg_HRV_ms" stroke="#555" strokeWidth={2} dot={false} name="7-Day Baseline" />
-              {/* Daily HRV — dot colour reflects Po-Ko risk; outline ring when external factors applied */}
+
+              {/* Daily HRV line — each dot is custom-rendered so its colour and
+                  size encode two independent signals at a glance:
+                    • fill colour  → Po-Ko risk tier (green / orange / red)
+                    • blue ring    → external factors were applied to that day's score
+                    • larger radius when external factors active to ensure the ring is visible */}
               <Line
                 yAxisId="left"
                 type="monotone"
@@ -241,13 +258,18 @@ function App() {
                 name="Daily HRV"
                 dot={(props) => {
                   const { cx, cy, payload, key } = props;
+                  // Blue stroke ring signals that self-reported external factors
+                  // (e.g. alcohol, travel) were fused into this day's score.
                   const hasExternal = payload.poko_external_applied;
                   if (payload.poko_score >= 8) {
+                    // HIGH / CRITICAL — red dot, slightly enlarged when external factors present
                     return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 8 : 6} fill="#dc2626" stroke={hasExternal ? '#3b82d4' : '#7f1d1d'} strokeWidth={2} />;
                   }
                   if (payload.poko_score >= 6) {
+                    // ELEVATED — orange dot
                     return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 7 : 5} fill="#fb923c" stroke={hasExternal ? '#3b82d4' : '#9a3412'} strokeWidth={2} />;
                   }
+                  // LOW / GUARDED — green dot; no stroke unless external factors active
                   return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 6 : 4} fill="#4ade80" stroke={hasExternal ? '#3b82d4' : 'none'} strokeWidth={hasExternal ? 2 : 0} />;
                 }}
                 activeDot={{ r: 8 }}

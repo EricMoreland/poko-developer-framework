@@ -11,17 +11,22 @@ import { ClipboardCheck, X, CheckCircle, XCircle } from 'lucide-react';
  *   onDismiss {fn}      – called when user closes without answering
  */
 export default function MicroSurvey({ date, questions, onSubmit, onDismiss }) {
-  // answers: { [questionId]: boolean | null }  null = unanswered
+  // Initialise every question to null (unanswered) using a lazy initialiser so
+  // the object is only built once on mount, not on every render.
+  // Shape: { [questionId]: boolean | null }
   const [answers, setAnswers] = useState(() =>
     Object.fromEntries(questions.map((q) => [q.id, null]))
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Guard: render nothing if the parent passes an empty question list
   if (!questions || questions.length === 0) return null;
 
+  // Submit button is only enabled once every question has a true/false answer
   const allAnswered = questions.every((q) => answers[q.id] !== null);
 
+  // Immutably update a single answer while preserving the rest
   function handleAnswer(id, value) {
     setAnswers((prev) => ({ ...prev, [id]: value }));
   }
@@ -31,7 +36,8 @@ export default function MicroSurvey({ date, questions, onSubmit, onDismiss }) {
     setSubmitting(true);
     setError(null);
 
-    // Only include answered questions in the payload
+    // Build the factors payload: { [factorId]: boolean }.
+    // This mirrors the shape expected by POST /api/survey/submit.
     const factors = {};
     for (const q of questions) {
       factors[q.id] = answers[q.id];
@@ -83,6 +89,8 @@ export default function MicroSurvey({ date, questions, onSubmit, onDismiss }) {
               <p style={styles.questionText}>
                 <span style={styles.questionIndex}>{i + 1}.</span> {q.question}
               </p>
+              {/* Spread the active style only when the matching value is selected.
+                  Uses strict equality so null (unanswered) never activates either style. */}
               <div style={styles.buttonRow}>
                 <button
                   style={{
@@ -111,7 +119,8 @@ export default function MicroSurvey({ date, questions, onSubmit, onDismiss }) {
 
         {error && <p style={styles.errorText}>{error}</p>}
 
-        {/* Submit */}
+        {/* Merge the disabled style override on top of the base submit button styles.
+            The empty spread {} when enabled means the base style is used as-is. */}
         <button
           style={{
             ...styles.submitBtn,
