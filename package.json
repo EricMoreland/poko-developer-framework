@@ -12,12 +12,14 @@
     "server": "npm run dev --prefix server",
     "mcp": "node server/mcp.js",
     "client": "npm run dev --prefix client",
-    "dev": "concurrently --names \"express,mcp,client\" \"npm run server\" \"npm run mcp\" \"npm run client\""
+    "dev": "concurrently --names \"express,mcp,client\" \"npm run server\" \"npm run mcp\" \"npm run client\"",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^10.0.5"
+    "concurrently": "^10.0.5",
+    "husky": "^9.1.7"
   }
 }
