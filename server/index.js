@@ -68,8 +68,18 @@ app.get('/api/telemetry', (req, res) => {
 
     const scoringResult = calculatePoKoScore({ ...dayData, trendWarning }, externalFactors);
 
+    // Compute Time_In_Bed_Minutes on-the-fly when it wasn't stored
+    // (rows logged before the bedtime-calculation logic was added have null here)
+    let timeInBed = dayData.Time_In_Bed_Minutes;
+    if (timeInBed == null && dayData.Bedtime_Decimal != null && dayData.Wake_Time_Decimal != null) {
+      const bt = parseFloat(dayData.Bedtime_Decimal);
+      const wt = parseFloat(dayData.Wake_Time_Decimal);
+      timeInBed = Math.round(((bt > wt ? (24.0 - bt) + wt : wt - bt) * 60) * 10) / 10;
+    }
+
     return {
       ...dayData,
+      Time_In_Bed_Minutes:   timeInBed,
       sick_day:              sickDayDates.has(dayData.Date),
       poko_score:            scoringResult.score,
       poko_risk_level:       scoringResult.riskLevel,

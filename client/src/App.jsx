@@ -370,7 +370,7 @@ function App() {
         <h2>30-Day Recovery Trend (Overnight HRV vs Baseline)</h2>
         <div className="chart-container">
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={telemetry} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <LineChart data={telemetry} margin={{ top: 30, right: 30, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
               <XAxis
                 dataKey="Date"
