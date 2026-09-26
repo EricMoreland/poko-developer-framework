@@ -11,6 +11,7 @@ export default function LearningInsightsBadge() {
   const [insights, setInsights] = useState(null);
   const [running, setRunning]   = useState(false);
   const [error, setError]       = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
   function fetchInsights() {
     return fetch('/api/learning/insights')
@@ -25,13 +26,27 @@ export default function LearningInsightsBadge() {
     if (running) return;
     setRunning(true);
     setError(null);
+    setToastMessage(null);
     try {
       const res = await fetch('/api/learning/run', { method: 'POST' });
       if (!res.ok) {
         const body = await res.json();
         throw new Error(body.error || 'Analysis failed');
       }
+      const data = await res.json();
       await fetchInsights();
+      // Check if the learning engine found anything new
+      const patternCount = data.insights?.detectedPatterns?.length || 0;
+      if (patternCount > 0) {
+        setToastMessage(`Analysis complete: ${patternCount} pattern(s) confirmed!`);
+      } else {
+        setToastMessage('Analysis complete: No new patterns detected yet.');
+      }
+      
+      // Auto-dismiss the dialog after 4 seconds
+      setTimeout(() => {
+        setToastMessage(null);
+      }, 4000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -60,15 +75,23 @@ export default function LearningInsightsBadge() {
           </span>
         </div>
       </div>
-      <button
-        onClick={handleRunAnalysis}
-        disabled={running}
-        style={{ ...styles.runBtn, ...(running ? styles.runBtnDisabled : {}) }}
-        title="Run multi-metric pattern analysis across your full health history"
-      >
-        <RefreshCw size={13} style={{ animation: running ? 'spin 1s linear infinite' : 'none' }} />
-        {running ? 'Analysing…' : 'Run Analysis'}
-      </button>
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={handleRunAnalysis}
+          disabled={running}
+          style={{ ...styles.runBtn, ...(running ? styles.runBtnDisabled : {}) }}
+          title="Run multi-metric pattern analysis across your full health history"
+        >
+          <RefreshCw size={13} style={{ animation: running ? 'spin 1s linear infinite' : 'none' }} />
+          {running ? 'Analysing…' : 'Run Analysis'}
+        </button>
+        {/* THE AUTO-DISMISSING DIALOG BOX */}
+        {toastMessage && (
+          <div style={styles.toast}>
+            {toastMessage}
+          </div>
+        )}
+      </div>
       {error && <span style={styles.error}>{error}</span>}
     </div>
   );
@@ -139,5 +162,20 @@ const styles = {
     fontSize: '0.75rem',
     color: '#f87171',
     width: '100%',
+  },
+  toast: {
+    position: 'absolute',
+    bottom: '100%',
+    right: '0',
+    marginBottom: '10px',
+    backgroundColor: '#1e222a',
+    border: '1px solid #7c5cd8',
+    color: '#e2e8f0',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    fontSize: '0.78rem',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+    zIndex: 50,
+    whiteSpace: 'nowrap',
   },
 };
