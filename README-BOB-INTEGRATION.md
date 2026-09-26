@@ -116,6 +116,29 @@ Returns stored advice if already generated for today's slot, or generates new ad
 
 ---
 
+### `log_daily_metrics`
+
+Logs daily wearable telemetry metrics directly into SQLite from the AI prompt window.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `date` | `string` (optional) | ISO date string (e.g. `"2026-09-26"`). Defaults to today. |
+| `sleepScore` | `number` | Sleep score (0–100). |
+| `overnightHrv` | `number` | Overnight HRV in ms. |
+| `avgHrv7d` | `number` | 7-day rolling average HRV in ms. |
+| `avgStress` | `number` | Average daily stress level (0–100). |
+| `bedtimeDecimal` | `number` | Bedtime in 24h decimal (e.g. `22.5`). |
+| `wakeTimeDecimal` | `number` | Wake time in 24h decimal (e.g. `7.0`). |
+| `sleepDurationMinutes`| `number` (optional)| Total sleep minutes. |
+
+**Example prompts:**
+- *"Log my daily metrics for today: sleep score 85, HRV 78, 7-day average 80, stress 22, bedtime 22.5, wake time 7.0."*
+- *"Record today's wearable data: HRV 65, baseline 80, sleep 62, stress 45, bedtime 23.0, wake time 6.5."*
+
+---
+
 ## How advice and scores update
 
 - **Score** is recalculated live on every `get_poko_status` call using the current SQLite telemetry and survey data.

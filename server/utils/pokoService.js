@@ -103,3 +103,62 @@ export function getTodayAdvice(slot) {
   const records = getAdviceByDate(date);
   return slot ? records.filter((r) => r.slot === slot) : records;
 }
+
+// ─── Log ───────────────────────────────────────────────────────────────────
+
+/**
+ * Logs daily telemetry metrics into SQLite and returns the updated score.
+ *
+ * @param {object} entry  Telemetry metrics payload
+ * @returns {{ entry: object, score: number, riskLevel: string }}
+ */
+export function logDailyTelemetry(entry) {
+  const date = entry.Date || new Date().toISOString().slice(0, 10);
+
+  let timeInBed = entry.Time_In_Bed_Minutes || null;
+  let gapMins = entry.Unrecorded_Gaps_Minutes || 0;
+  let sensorGapFlag = entry.Sensor_Gap_Flag || false;
+
+  // Derive time in bed and sensor gap flag if bedtime/wake time supplied
+  if (entry.Bedtime_Decimal != null && entry.Wake_Time_Decimal != null) {
+    const bt = parseFloat(entry.Bedtime_Decimal);
+    const wt = parseFloat(entry.Wake_Time_Decimal);
+    const inBedHrs = bt > wt ? (24.0 - bt) + wt : wt - bt;
+    timeInBed = Math.round(inBedHrs * 60 * 10) / 10;
+
+    if (entry.Sleep_Duration_Minutes != null) {
+      gapMins = Math.round((timeInBed - parseFloat(entry.Sleep_Duration_Minutes)) * 10) / 10;
+      sensorGapFlag = gapMins > 60.0;
+    }
+  }
+
+  const totalRecords = getTelemetry().length;
+  const telemetryRow = {
+    Day: entry.Day || `Day_${String(totalRecords + 1).padStart(2, '0')}`,
+    Date: date,
+    Sleep_Score: entry.Sleep_Score ?? null,
+    Overnight_HRV_ms: entry.Overnight_HRV_ms ?? null,
+    '7d_Avg_HRV_ms': entry['7d_Avg_HRV_ms'] ?? null,
+    Avg_Stress: entry.Avg_Stress ?? null,
+    Bedtime_Decimal: entry.Bedtime_Decimal ?? null,
+    Wake_Time_Decimal: entry.Wake_Time_Decimal ?? null,
+    Sleep_Duration_Minutes: entry.Sleep_Duration_Minutes ?? null,
+    Time_In_Bed_Minutes: timeInBed,
+    Unrecorded_Gaps_Minutes: gapMins,
+    Sensor_Gap_Flag: sensorGapFlag ? 1 : 0,
+  };
+
+  insertTelemetry(telemetryRow);
+
+  // Get external factors for compound scoring
+  const externalEntry = getFactorsForDate(date);
+  const externalFactors = externalEntry ? externalEntry.factors : null;
+
+  const scoringResult = calculatePoKoScore(telemetryRow, externalFactors);
+
+  return {
+    entry: telemetryRow,
+    score: scoringResult.score,
+    riskLevel: scoringResult.riskLevel,
+  };
+}

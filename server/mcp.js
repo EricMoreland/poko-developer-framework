@@ -19,7 +19,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
-import { getTodayTelemetry, submitSurveyFactors, getTodayAdvice } from './utils/pokoService.js';
+import { getTodayTelemetry, submitSurveyFactors, getTodayAdvice, logDailyTelemetry } from './utils/pokoService.js';
 import { generateAdvice } from './adviceEngine.js';
 import { getTelemetryByDate, getFactorsForDate, isSickDay, insertAdvice } from './db.js';
 
@@ -221,6 +221,71 @@ server.registerTool(
       console.error('[mcp] get_advice error:', err.message);
       return {
         content: [{ type: 'text', text: `Error getting advice: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// ─── Tool: log_daily_metrics ──────────────────────────────────────────────────
+
+server.registerTool(
+  'log_daily_metrics',
+  {
+    description:
+      'Logs daily wearable telemetry metrics (Sleep Score, Overnight HRV, 7-day Avg HRV, Avg Stress, Bedtime, Wake Time) ' +
+      'directly into the local database from the AI chat window. Recalculates and returns the updated Po-Ko score in real time.',
+    inputSchema: z.object({
+      date: z.string().optional()
+        .describe('ISO date string (e.g. "2026-09-26"). Defaults to today if omitted.'),
+      sleepScore: z.number().min(0).max(100)
+        .describe('Garmin Sleep Score (0–100).'),
+      overnightHrv: z.number().min(0)
+        .describe('Overnight average HRV in ms.'),
+      avgHrv7d: z.number().min(0)
+        .describe('7-day rolling average HRV baseline in ms.'),
+      avgStress: z.number().min(0).max(100)
+        .describe('Average daily stress level (0–100).'),
+      bedtimeDecimal: z.number().min(0).max(24)
+        .describe('Bedtime in 24h decimal format (e.g., 22.5 for 10:30 PM).'),
+      wakeTimeDecimal: z.number().min(0).max(24)
+        .describe('Wake time in 24h decimal format (e.g., 7.0 for 7:00 AM).'),
+      sleepDurationMinutes: z.number().optional()
+        .describe('Optional recorded sleep duration in minutes.'),
+    }),
+  },
+  async (params) => {
+    try {
+      const targetDate = params.date || new Date().toISOString().slice(0, 10);
+      const result = logDailyTelemetry({
+        Date: targetDate,
+        Sleep_Score: params.sleepScore,
+        Overnight_HRV_ms: params.overnightHrv,
+        '7d_Avg_HRV_ms': params.avgHrv7d,
+        Avg_Stress: params.avgStress,
+        Bedtime_Decimal: params.bedtimeDecimal,
+        Wake_Time_Decimal: params.wakeTimeDecimal,
+        Sleep_Duration_Minutes: params.sleepDurationMinutes,
+      });
+
+      return {
+        content: [{
+          type: 'text',
+          text: [
+            `✓ Daily telemetry metrics logged successfully for **${targetDate}**.`,
+            ``,
+            `**Updated Po-Ko Score:** ${result.score}/10  (${result.riskLevel})`,
+            `• Overnight HRV: ${params.overnightHrv} ms (7d Avg: ${params.avgHrv7d} ms)`,
+            `• Sleep Score: ${params.sleepScore}/100`,
+            `• Avg Stress: ${params.avgStress}/100`,
+            `• Bedtime / Wake: ${params.bedtimeDecimal} / ${params.wakeTimeDecimal}`,
+          ].join('\n'),
+        }],
+      };
+    } catch (err) {
+      console.error('[mcp] log_daily_metrics error:', err.message);
+      return {
+        content: [{ type: 'text', text: `Error logging telemetry metrics: ${err.message}` }],
         isError: true,
       };
     }

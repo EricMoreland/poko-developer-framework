@@ -9,7 +9,8 @@
       "alwaysAllow": [
         "get_poko_status",
         "submit_survey",
-        "get_advice"
+        "get_advice",
+        "log_daily_metrics"
       ]
     }
   }
