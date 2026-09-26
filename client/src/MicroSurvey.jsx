@@ -132,7 +132,7 @@ export default function MicroSurvey({ date, questions, onSubmit, onDismiss }) {
           onClick={handleSubmit}
           disabled={!allAnswered || submitting}
         >
-          {submitting ? 'Saving…' : 'Submit — Update My Score'}
+          {submitting ? 'Saving…' : 'Submit - Update My Score'}
         </button>
 
         <p style={styles.privacyNote}>Stays on your device. Used only to improve your Po-Ko score accuracy.</p>

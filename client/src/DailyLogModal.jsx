@@ -133,7 +133,7 @@ export default function DailyLogModal({ onClose, onSubmit }) {
                 />
               </Field>
 
-              <Field label="Overnight HRV" hint="ms — from Garmin morning report">
+              <Field label="Overnight HRV" hint="ms - from Garmin morning report">
                 <input
                   type="number"
                   style={styles.input}
@@ -144,7 +144,7 @@ export default function DailyLogModal({ onClose, onSubmit }) {
                 />
               </Field>
 
-              <Field label="7-Day Avg HRV" hint="ms — your rolling baseline">
+              <Field label="7-Day Avg HRV" hint="ms - your rolling baseline">
                 <input
                   type="number"
                   style={styles.input}
@@ -166,7 +166,7 @@ export default function DailyLogModal({ onClose, onSubmit }) {
                 />
               </Field>
 
-              <Field label="Bedtime" hint="24h decimal — e.g. 22.5 = 10:30 PM">
+              <Field label="Bedtime" hint="24h decimal - e.g. 22.5 = 10:30 PM">
                 <input
                   type="number"
                   style={styles.input}
@@ -177,7 +177,7 @@ export default function DailyLogModal({ onClose, onSubmit }) {
                 />
               </Field>
 
-              <Field label="Wake Time" hint="24h decimal — e.g. 7.0 = 7:00 AM">
+              <Field label="Wake Time" hint="24h decimal - e.g. 7.0 = 7:00 AM">
                 <input
                   type="number"
                   style={styles.input}

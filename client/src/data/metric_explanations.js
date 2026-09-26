@@ -13,16 +13,16 @@
 
 export const METRIC_EXPLANATIONS = {
   hrv: {
-    subtitle: 'How much your heart rate varied during sleep — a key recovery signal',
+    subtitle: 'How much your heart rate varied during sleep - a key recovery signal',
     description:
       'Heart Rate Variability (HRV) measures the millisecond-level variation between heartbeats overnight. ' +
       'Higher variability means your autonomic nervous system is well-recovered and ready to adapt to stress. ' +
       'Lower variability signals your body is still under load from the previous day.',
     healthyRange:
-      'Personal baselines vary widely (30–100 ms is typical). What matters most is your own 7-day average — ' +
+      'Personal baselines vary widely (30-100 ms is typical). What matters most is your own 7-day average - ' +
       'staying within 5–8% of that baseline indicates full recovery.',
     scoreImpactDescription:
-      'HRV carries 40% of the Po-Ko score weight — the largest single component. ' +
+      'HRV carries 40% of the Po-Ko score weight - the largest single component. ' +
       'A drop ≥8% from your 7-day baseline triggers a moderate penalty; ≥15% is elevated; ≥25% is severe.',
   },
 
@@ -50,7 +50,7 @@ export const METRIC_EXPLANATIONS = {
       '7–9 hours is the recommended range for most adults. The gap between Time In Bed and ' +
       'Sleep Duration (the "unrecorded gap") ideally stays under 30 minutes.',
     scoreImpactDescription:
-      'Time In Bed itself does not directly score — the Sensor Gap component (10% weight) penalises ' +
+      'Time In Bed itself does not directly score - the Sensor Gap component (10% weight) penalises ' +
       'gaps larger than 60 minutes, which typically signal the wearable was removed during the night.',
   },
 
@@ -59,7 +59,7 @@ export const METRIC_EXPLANATIONS = {
     description:
       "Garmin's Average Stress score (0–100) reflects your autonomic nervous system's sympathetic " +
       'activation throughout the day, derived continuously from HRV patterns while awake. ' +
-      'It captures both psychological stress and physical load — a hard workout raises it just as a ' +
+      'It captures both psychological stress and physical load - a hard workout raises it just as a ' +
       'tense meeting does.',
     healthyRange:
       '0–25 is Calm. 26–40 is Low. 41–60 is Moderate. 61–75 is High. Above 75 is Very High. ' +

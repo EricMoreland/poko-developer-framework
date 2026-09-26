@@ -56,7 +56,7 @@ export default function LearningInsightsBadge() {
             )}
           </span>
           <span style={styles.sub}>
-            {lastRun ? `Last run: ${lastRun}` : 'Not yet run — click to analyse your history'}
+            {lastRun ? `Last run: ${lastRun}` : 'Not yet run - click to analyse your history'}
           </span>
         </div>
       </div>

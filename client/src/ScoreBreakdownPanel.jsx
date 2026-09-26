@@ -21,21 +21,21 @@ export default function ScoreBreakdownPanel({ today }) {
       penalty: hrv,
       value:   today.Overnight_HRV_ms != null
         ? `${today.Overnight_HRV_ms} ms (baseline ${today['7d_Avg_HRV_ms']} ms)`
-        : '—',
+        : '-',
       interpretation: interpretHRV(hrv, today.Overnight_HRV_ms, today['7d_Avg_HRV_ms']),
     },
     {
       name:    'Sleep Quality',
       weight:  '30%',
       penalty: sleep,
-      value:   today.Sleep_Score != null ? `${today.Sleep_Score}/100` : '—',
+      value:   today.Sleep_Score != null ? `${today.Sleep_Score}/100` : '-',
       interpretation: interpretSleep(sleep, today.Sleep_Score),
     },
     {
       name:    'Avg Stress',
       weight:  '20%',
       penalty: stress,
-      value:   today.Avg_Stress != null ? `${today.Avg_Stress}/100` : '—',
+      value:   today.Avg_Stress != null ? `${today.Avg_Stress}/100` : '-',
       interpretation: interpretStress(stress, today.Avg_Stress),
     },
     {
@@ -44,7 +44,7 @@ export default function ScoreBreakdownPanel({ today }) {
       penalty: sensorGap,
       value:   today.Sensor_Gap_Flag ? 'Gap detected (>60 min)' : 'No gap',
       interpretation: sensorGap === 0
-        ? 'Wearable worn throughout the night — full data confidence.'
+        ? 'Wearable worn throughout the night - full data confidence.'
         : 'Large unrecorded window detected, likely wearable removal. Data confidence reduced.',
     },
   ];
@@ -55,7 +55,7 @@ export default function ScoreBreakdownPanel({ today }) {
 
   return (
     <div style={styles.panel}>
-      <p style={styles.panelTitle}>Score breakdown — {today.Date}</p>
+      <p style={styles.panelTitle}>Score breakdown - {today.Date}</p>
 
       {/* Biometric components table */}
       <div style={styles.table}>
@@ -133,7 +133,7 @@ export default function ScoreBreakdownPanel({ today }) {
       <div style={styles.totalRow}>
         <span style={styles.totalLabel}>Final Po-Ko Score</span>
         <span style={{ ...styles.totalValue, color: riskColor(today.poko_risk_level) }}>
-          {today.poko_score}/10 — {today.poko_risk_level}
+          {today.poko_score}/10 - {today.poko_risk_level}
         </span>
       </div>
     </div>
@@ -143,27 +143,27 @@ export default function ScoreBreakdownPanel({ today }) {
 // ─── Interpretation helpers ───────────────────────────────────────────────────
 
 function interpretHRV(penalty, hrv, baseline) {
-  if (penalty === 0) return 'HRV at or above baseline — full autonomic recovery.';
-  if (penalty <= 2)  return 'Minor HRV dip (<8%) — within normal daily variation.';
-  if (penalty <= 5)  return `HRV ${hrv && baseline ? Math.round(((baseline - hrv) / baseline) * 100) : ''}% below baseline — meaningful recovery deficit.`;
-  if (penalty <= 7)  return 'Significant HRV suppression — elevated physiological stress.';
-  return 'Severe HRV suppression (>25% below baseline) — high fatigue load.';
+  if (penalty === 0) return 'HRV at or above baseline - full autonomic recovery.';
+  if (penalty <= 2)  return 'Minor HRV dip (<8%) - within normal daily variation.';
+  if (penalty <= 5)  return `HRV ${hrv && baseline ? Math.round(((baseline - hrv) / baseline) * 100) : ''}% below baseline - meaningful recovery deficit.`;
+  if (penalty <= 7)  return 'Significant HRV suppression - elevated physiological stress.';
+  return 'Severe HRV suppression (>25% below baseline) - high fatigue load.';
 }
 
 function interpretSleep(penalty, score) {
-  if (penalty === 0) return 'Excellent sleep — full cognitive restoration.';
-  if (penalty <= 3)  return 'Good sleep quality — minor restoration gap.';
-  if (penalty <= 6)  return `Fair sleep (score ${score}) — working memory and focus reduced.`;
-  if (penalty <= 8)  return 'Poor sleep — significant cognitive capacity impact.';
-  return 'Very poor sleep — sustained attention and decision-making substantially impaired.';
+  if (penalty === 0) return 'Excellent sleep - full cognitive restoration.';
+  if (penalty <= 3)  return 'Good sleep quality - minor restoration gap.';
+  if (penalty <= 6)  return `Fair sleep (score ${score}) - working memory and focus reduced.`;
+  if (penalty <= 8)  return 'Poor sleep - significant cognitive capacity impact.';
+  return 'Very poor sleep - sustained attention and decision-making substantially impaired.';
 }
 
 function interpretStress(penalty, stress) {
-  if (penalty === 0) return 'Calm autonomic state — parasympathetic dominance.';
-  if (penalty <= 2)  return 'Low-level stress — normal for an active workday.';
-  if (penalty <= 5)  return `Moderate sustained stress (${stress}) — allostatic load accumulating.`;
-  if (penalty <= 7)  return 'High stress — cortisol and sympathetic activation elevated.';
-  return 'Very high stress — immune suppression and recovery impairment likely.';
+  if (penalty === 0) return 'Calm autonomic state - parasympathetic dominance.';
+  if (penalty <= 2)  return 'Low-level stress - normal for an active workday.';
+  if (penalty <= 5)  return `Moderate sustained stress (${stress}) - allostatic load accumulating.`;
+  if (penalty <= 7)  return 'High stress - cortisol and sympathetic activation elevated.';
+  return 'Very high stress - immune suppression and recovery impairment likely.';
 }
 
 function penaltyColor(penalty) {

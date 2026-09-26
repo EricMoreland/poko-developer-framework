@@ -136,6 +136,12 @@ function App() {
         <div className="header-titles">
           <h1>Po-Ko Developer Capacity Framework</h1>
           <p className="subtitle">Proactive Care &amp; Risk Analytics</p>
+          <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b', maxWidth: '340px', lineHeight: 1.5 }}>
+            <span style={{ color: '#94a3b8', fontWeight: 600 }}>What's a Po-Ko score?</span>
+            {' '}A number from <strong style={{ color: '#f8fafc' }}>0–10</strong> that fuses your overnight HRV, sleep quality, stress, and self-reported factors into a single daily readiness signal.{' '}
+            <strong style={{ color: '#4ade80' }}>Low</strong> = well-recovered &amp; sharp.{' '}
+            <strong style={{ color: '#f87171' }}>High</strong> = strain detected - consider pacing your workload.
+          </p>
         </div>
         {/* Header action buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -215,7 +221,7 @@ function App() {
               {today.poko_trend_details?.reason || "Impending sickness pattern detected. Please prioritize hydration and consider pacing your workload today."}
             </p>
             <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: '#fca5a5', opacity: 0.8 }}>
-              Your HRV has been falling and stress rising for 2+ consecutive days — this pattern commonly precedes illness by 24–48 hours. Consider reducing cognitive load and prioritising sleep tonight.
+              Your HRV has been falling and stress rising for 2+ consecutive days - this pattern commonly precedes illness by 24-48 hours. Consider reducing cognitive load and prioritising sleep tonight.
             </p>
           </div>
         </div>
@@ -238,7 +244,7 @@ function App() {
           <ShieldAlert size={16} color="#3b82d4" />
           <span>
             <strong style={{ color: '#3b82d4' }}>External factors active</strong>
-            {' — '}
+            {' - '}
             {today.poko_external_factors?.activeFactors?.join(', ') || 'self-reported data'}
             {' contributing '}
             <strong>+{today.poko_external_factors?.totalPenalty?.toFixed(1)}</strong>
