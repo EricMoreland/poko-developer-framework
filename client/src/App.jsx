@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Heart, Moon, ShieldAlert } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { Activity, Heart, Moon, ShieldAlert, ClipboardList } from 'lucide-react';
 import MicroSurvey from './MicroSurvey';
+import SickDayButton from './SickDayButton';
+import DailyLogModal from './DailyLogModal';
+import LearningInsightsBadge from './LearningInsightsBadge';
+import AdviceToast from './AdviceToast';
+import InfoTooltip from './InfoTooltip';
+import ScoreBreakdownPanel from './ScoreBreakdownPanel';
+import { METRIC_EXPLANATIONS } from './data/metric_explanations.js';
 import './App.css'
 
 function App() {
@@ -13,6 +20,19 @@ function App() {
   const [surveyQuestions, setSurveyQuestions] = useState([]);
   const [showSurvey, setShowSurvey]         = useState(false);
   const [surveyDismissed, setSurveyDismissed] = useState(false);
+
+  // Daily log modal state
+  const [showLogModal, setShowLogModal] = useState(false);
+
+  // Score breakdown panel state
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
+  // Advice toasts state
+  const [adviceItems, setAdviceItems]         = useState([]);
+  const [dismissedAdvice, setDismissedAdvice] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('poko_dismissed_advice') || '{}'); }
+    catch { return {}; }
+  });
 
   // Fetches the 30 most-recent telemetry days from the server and stores them
   // oldest-first so the Recharts LineChart renders left-to-right chronologically.
@@ -26,20 +46,19 @@ function App() {
   }
 
   useEffect(() => {
-    // Fire both requests simultaneously to minimise initial load time.
-    // The destructured [, surveyData] skips the telemetry promise result
-    // because fetchTelemetry() already sets state internally.
     Promise.all([
       fetchTelemetry(),
       fetch('/api/survey/questions').then((r) => r.json()),
+      fetch('/api/advice/today').then((r) => r.json()),
     ])
-      .then(([, surveyData]) => {
-        // Only surface the survey modal when today's questions haven't been
-        // answered yet and the server returned at least one triggered question.
+      .then(([, surveyData, todayAdvice]) => {
         if (!surveyData.alreadyAnswered && surveyData.questions.length > 0) {
           setSurveyDate(surveyData.date);
           setSurveyQuestions(surveyData.questions);
           setShowSurvey(true);
+        }
+        if (Array.isArray(todayAdvice)) {
+          setAdviceItems(todayAdvice);
         }
       })
       .catch((err) => {
@@ -60,6 +79,14 @@ function App() {
   function handleSurveyDismiss() {
     setShowSurvey(false);
     setSurveyDismissed(true);
+  }
+
+  function dismissAdvice(slot) {
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `${today}_${slot}`;
+    const updated = { ...dismissedAdvice, [key]: true };
+    setDismissedAdvice(updated);
+    localStorage.setItem('poko_dismissed_advice', JSON.stringify(updated));
   }
 
   if (loading) {
@@ -97,22 +124,73 @@ function App() {
         />
       )}
 
+      {/* Daily Log Modal */}
+      {showLogModal && (
+        <DailyLogModal
+          onClose={() => setShowLogModal(false)}
+          onSubmit={() => { setShowLogModal(false); fetchTelemetry().catch(console.error); }}
+        />
+      )}
+
       <header className="dashboard-header">
         <div className="header-titles">
           <h1>Po-Ko Developer Capacity Framework</h1>
           <p className="subtitle">Proactive Care &amp; Risk Analytics</p>
         </div>
-        {/* The Po-Ko Risk Score Circle */}
-        <div className="score-container" style={{ borderColor: riskColor }}>
-          <div className="score-value" style={{ color: riskColor }}>
-            {today.poko_score || '--'}
+        {/* Header action buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => setShowLogModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: '1px solid #3b82d4',
+              backgroundColor: 'rgba(59, 130, 212, 0.1)',
+              color: '#3b82d4',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <ClipboardList size={14} />
+            Log Today
+          </button>
+          <SickDayButton />
+        </div>
+        {/* The Po-Ko Risk Score Circle + breakdown toggle */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+          <div className="score-container" style={{ borderColor: riskColor }}>
+            <div className="score-value" style={{ color: riskColor }}>
+              {today.poko_score || '--'}
+            </div>
+            <div className="score-label">Po-Ko Score</div>
+            <div className="score-level" style={{ color: riskColor }}>
+              {today.poko_risk_level || 'ANALYZING'}
+            </div>
           </div>
-          <div className="score-label">Po-Ko Score</div>
-          <div className="score-level" style={{ color: riskColor }}>
-            {today.poko_risk_level || 'ANALYZING'}
-          </div>
+          <button
+            onClick={() => setShowBreakdown((v) => !v)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#57606a',
+              fontSize: '0.72rem',
+              cursor: 'pointer',
+              padding: 0,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {showBreakdown ? 'hide breakdown ▴' : 'explain my score ▾'}
+          </button>
         </div>
       </header>
+
+      {/* Score Breakdown Panel */}
+      {showBreakdown && <ScoreBreakdownPanel today={today} />}
 
       {/* Active Trend Warning Banner */}
       {today.poko_trend_boosted && (
@@ -132,6 +210,9 @@ function App() {
             <h4 style={{ margin: 0, color: '#ef4444', fontSize: '1.1rem' }}>Sickness Prediction Alert</h4>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem' }}>
               {today.poko_trend_details?.reason || "Impending sickness pattern detected. Please prioritize hydration and consider pacing your workload today."}
+            </p>
+            <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: '#fca5a5', opacity: 0.8 }}>
+              Your HRV has been falling and stress rising for 2+ consecutive days — this pattern commonly precedes illness by 24–48 hours. Consider reducing cognitive load and prioritising sleep tonight.
             </p>
           </div>
         </div>
@@ -168,6 +249,24 @@ function App() {
         </div>
       )}
 
+      {/* Learning Insights Badge */}
+      <LearningInsightsBadge />
+
+      {/* Advice Toasts — show un-dismissed advice items for today */}
+      {adviceItems
+        .filter((a) => {
+          const today = new Date().toISOString().slice(0, 10);
+          return !dismissedAdvice[`${today}_${a.slot}`];
+        })
+        .map((a) => (
+          <AdviceToast
+            key={`${a.date}_${a.slot}`}
+            advice={a}
+            onDismiss={() => dismissAdvice(a.slot)}
+          />
+        ))
+      }
+
       {/* Retrigger survey if dismissed */}
       {surveyDismissed && surveyQuestions.length > 0 && (
         <div style={{ textAlign: 'right', marginBottom: '12px' }}>
@@ -191,30 +290,73 @@ function App() {
       {/* Top Metric Cards */}
       <div className="metric-cards">
         <div className="card">
-          <Heart className="card-icon text-red" />
-          <h3>Overnight HRV</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Heart className="card-icon text-red" style={{ marginBottom: 0 }} />
+            <InfoTooltip
+              title="Overnight HRV"
+              description={METRIC_EXPLANATIONS.hrv.description}
+              healthyRange={METRIC_EXPLANATIONS.hrv.healthyRange}
+              scoreImpactDescription={METRIC_EXPLANATIONS.hrv.scoreImpactDescription}
+            />
+          </div>
+          <h3 style={{ marginTop: '0.75rem' }}>Overnight HRV</h3>
+          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+            {METRIC_EXPLANATIONS.hrv.subtitle}
+          </p>
           <p className="card-value">{today.Overnight_HRV_ms || '--'} ms</p>
           <p className="card-subtitle">Baseline: {today['7d_Avg_HRV_ms']} ms</p>
         </div>
 
         <div className="card">
-          <Moon className="card-icon text-blue" />
-          <h3>Sleep Quality</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Moon className="card-icon text-blue" style={{ marginBottom: 0 }} />
+            <InfoTooltip
+              title="Sleep Quality"
+              description={METRIC_EXPLANATIONS.sleep.description}
+              healthyRange={METRIC_EXPLANATIONS.sleep.healthyRange}
+              scoreImpactDescription={METRIC_EXPLANATIONS.sleep.scoreImpactDescription}
+            />
+          </div>
+          <h3 style={{ marginTop: '0.75rem' }}>Sleep Quality</h3>
+          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+            {METRIC_EXPLANATIONS.sleep.subtitle}
+          </p>
           <p className="card-value">{today.Sleep_Score || '--'} / 100</p>
           <p className="card-subtitle">{today.Sleep_Quality}</p>
         </div>
 
         <div className="card">
-          <Activity className="card-icon text-orange" />
-          <h3>Time in Bed</h3>
-          {/* Convert stored minutes to hours with one decimal place for readability */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Activity className="card-icon text-orange" style={{ marginBottom: 0 }} />
+            <InfoTooltip
+              title="Time in Bed"
+              description={METRIC_EXPLANATIONS.timeInBed.description}
+              healthyRange={METRIC_EXPLANATIONS.timeInBed.healthyRange}
+              scoreImpactDescription={METRIC_EXPLANATIONS.timeInBed.scoreImpactDescription}
+            />
+          </div>
+          <h3 style={{ marginTop: '0.75rem' }}>Time in Bed</h3>
+          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+            {METRIC_EXPLANATIONS.timeInBed.subtitle}
+          </p>
           <p className="card-value">{today.Time_In_Bed_Minutes ? Math.round(today.Time_In_Bed_Minutes / 60 * 10) / 10 : '--'} hrs</p>
           <p className="card-subtitle">Unrecorded Gap: {today.Unrecorded_Gaps_Minutes || 0} mins</p>
         </div>
 
         <div className="card alert-card">
-          <ShieldAlert className="card-icon text-yellow" />
-          <h3>Avg Daily Stress</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <ShieldAlert className="card-icon text-yellow" style={{ marginBottom: 0 }} />
+            <InfoTooltip
+              title="Avg Daily Stress"
+              description={METRIC_EXPLANATIONS.stress.description}
+              healthyRange={METRIC_EXPLANATIONS.stress.healthyRange}
+              scoreImpactDescription={METRIC_EXPLANATIONS.stress.scoreImpactDescription}
+            />
+          </div>
+          <h3 style={{ marginTop: '0.75rem' }}>Avg Daily Stress</h3>
+          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+            {METRIC_EXPLANATIONS.stress.subtitle}
+          </p>
           <p className="card-value">{today.Avg_Stress || '--'}</p>
           <p className="card-subtitle">Max 100</p>
         </div>
@@ -258,6 +400,18 @@ function App() {
                 name="Daily HRV"
                 dot={(props) => {
                   const { cx, cy, payload, key } = props;
+                  // Red diamond marker for sick days
+                  if (payload.sick_day) {
+                    return (
+                      <polygon
+                        key={key}
+                        points={`${cx},${cy - 9} ${cx + 7},${cy} ${cx},${cy + 9} ${cx - 7},${cy}`}
+                        fill="#dc2626"
+                        stroke="#fca5a5"
+                        strokeWidth={1.5}
+                      />
+                    );
+                  }
                   // Blue stroke ring signals that self-reported external factors
                   // (e.g. alcohol, travel) were fused into this day's score.
                   const hasExternal = payload.poko_external_applied;
@@ -274,6 +428,21 @@ function App() {
                 }}
                 activeDot={{ r: 8 }}
               />
+              {/* Vertical reference lines on sick days */}
+              {telemetry
+                .filter((d) => d.sick_day)
+                .map((d) => (
+                  <ReferenceLine
+                    key={`sick-${d.Date}`}
+                    yAxisId="left"
+                    x={d.Date}
+                    stroke="#dc2626"
+                    strokeDasharray="4 3"
+                    strokeOpacity={0.5}
+                    label={{ value: '🤒', position: 'top', fontSize: 12 }}
+                  />
+                ))
+              }
             </LineChart>
           </ResponsiveContainer>
         </div>

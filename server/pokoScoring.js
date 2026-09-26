@@ -1,5 +1,5 @@
 /**
- * Po-Ko Predictive Scoring Engine
+ * server/pokoScoring.js — Po-Ko Predictive Scoring Engine
  * ─────────────────────────────────────────────────────────────────────────────
  * Exports:
  *   • calculatePoKoScore(dailyMetrics, externalFactors?)
@@ -49,6 +49,29 @@
  *   • travelOrJetLag + poor sleep        → additional +0.8 (circadian disruption confirmed by data)
  *   • highWorkloadDeadline + emotionallyDrained → additional +0.5 (compounded psychological load)
  */
+
+// ─── Learning Insights loader ─────────────────────────────────────────────────
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+const INSIGHTS_FILE = path.join(__dirname, 'data', 'learning_insights.json');
+
+/**
+ * Loads learning insights from disk on each call so pattern changes are
+ * picked up immediately without restarting the server.
+ * Returns null when no insights file exists yet.
+ */
+function loadInsights() {
+  try {
+    return JSON.parse(fs.readFileSync(INSIGHTS_FILE, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
 
 // ─── Biometric Constants ──────────────────────────────────────────────────────
 
@@ -446,17 +469,24 @@ export function calculatePoKoScore(dailyMetrics, externalFactors = null) {
     trendWarning = false,
   } = dailyMetrics;
 
+  // --- Load personalised thresholds from learning insights (if available) ---
+  const insights = loadInsights();
+  const learnedBands = insights?.thresholds?.hrv_bands;
+
+  // Use personalised HRV bands when available, otherwise fall back to hardcoded defaults
+  const effectiveHRVDrop = learnedBands
+    ? { MILD: learnedBands.mild, MODERATE: learnedBands.moderate, SEVERE: learnedBands.severe }
+    : { MILD: HRV_DROP.MILD, MODERATE: HRV_DROP.MODERATE, SEVERE: HRV_DROP.SEVERE };
+
   // --- Biometric component penalties (each 0–10) ---
   const components = {
-    hrv:       scoreHRV(Overnight_HRV_ms, baseline_HRV),
+    hrv:       scoreHRVWithBands(Overnight_HRV_ms, baseline_HRV, effectiveHRVDrop),
     sleep:     scoreSleep(Sleep_Score),
     stress:    scoreStress(Avg_Stress),
     sensorGap: scoreSensorGap(Sensor_Gap_Flag),
   };
 
   // --- Weighted biometric base score ---
-  // Each component returns 0–10; multiply by its weight so the weighted sum
-  // is also in the 0–10 range before external factor additive penalties.
   let rawScore =
     components.hrv       * WEIGHTS.hrv   +
     components.sleep     * WEIGHTS.sleep  +
@@ -464,19 +494,13 @@ export function calculatePoKoScore(dailyMetrics, externalFactors = null) {
     components.sensorGap * WEIGHTS.sensorGap;
 
   // --- 72-Hour Rebound Rule boost ---
-  // Adds a flat 1.5-point penalty when the multi-day trend detector fires,
-  // pushing the score toward HIGH/CRITICAL even if today's biometrics look OK.
   if (trendWarning) rawScore += TREND_BOOST;
 
   // --- External factor fusion ---
-  // Additive penalties from self-reported survey answers are layered on top of
-  // the biometric base, allowing the score to exceed 10 before the clamp.
   const externalFactorResult = scoreExternalFactors(dailyMetrics, externalFactors);
   rawScore += externalFactorResult.totalPenalty;
 
-  // --- Clamp to [1, 10] and round to one decimal ---
-  // Floor at 1 so "all metrics perfect" still produces a meaningful score,
-  // not 0. Ceiling at 10 is the Active Support State boundary.
+  // --- Clamp to [1, 10] ---
   const score = Math.min(10, Math.max(1, Math.round(rawScore * 10) / 10));
 
   // --- Derive human-readable risk tier ---
@@ -487,6 +511,9 @@ export function calculatePoKoScore(dailyMetrics, externalFactors = null) {
   else if (score <= 9) riskLevel = 'HIGH';
   else                 riskLevel = 'CRITICAL';
 
+  // --- Evaluate learned pattern warnings ---
+  const patternWarnings = evaluateLearnedPatterns(insights, dailyMetrics);
+
   return {
     score,
     components,
@@ -494,7 +521,63 @@ export function calculatePoKoScore(dailyMetrics, externalFactors = null) {
     riskLevel,
     trendBoosted: trendWarning,
     externalFactorsApplied: externalFactorResult.activeFactors.length > 0,
+    patternWarnings,
   };
+}
+
+/**
+ * scoreHRV variant that accepts runtime-provided threshold bands.
+ * Mirrors the hardcoded scoreHRV logic but uses the provided band object.
+ */
+function scoreHRVWithBands(hrv, baseline, bands) {
+  if (!baseline || baseline <= 0) return 5;
+  const drop = (baseline - hrv) / baseline;
+  if (drop <= 0)            return 0;
+  if (drop < bands.MILD)    return 2;
+  if (drop < bands.MODERATE) return 5;
+  if (drop < bands.SEVERE)  return 7;
+  return 10;
+}
+
+/**
+ * Evaluates all learned pattern detection rules against the provided daily metrics.
+ * Returns an array of warning objects for any patterns that match.
+ *
+ * Note: Full multi-day window evaluation requires historical data; this function
+ * evaluates the single-day conditions only (the caller in the telemetry route
+ * passes the last N days for complete window evaluation).
+ */
+function evaluateLearnedPatterns(insights, dailyMetrics) {
+  if (!insights?.detectedPatterns?.length) return [];
+
+  const warnings = [];
+  for (const pattern of insights.detectedPatterns) {
+    if (!pattern.detectionRule?.conditions?.length) continue;
+
+    let allMatch = true;
+    for (const condition of pattern.detectionRule.conditions) {
+      const fieldValue = dailyMetrics[condition.field];
+      if (fieldValue == null) continue; // skip missing fields
+
+      const threshold = typeof condition.value === 'number' ? condition.value : null;
+      if (threshold == null) continue;
+
+      if (condition.operator === '<'  && !(fieldValue < threshold))  { allMatch = false; break; }
+      if (condition.operator === '>'  && !(fieldValue > threshold))  { allMatch = false; break; }
+      if (condition.operator === '<=' && !(fieldValue <= threshold)) { allMatch = false; break; }
+      if (condition.operator === '>=' && !(fieldValue >= threshold)) { allMatch = false; break; }
+    }
+
+    if (allMatch) {
+      warnings.push({
+        patternId: pattern.patternId,
+        name: pattern.name,
+        warningMessage: pattern.warningMessage,
+        occurrences: pattern.occurrences,
+      });
+    }
+  }
+  return warnings;
 }
 
 /**

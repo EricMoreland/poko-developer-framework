@@ -10,8 +10,9 @@
     "install:server": "npm install --prefix server",
     "install:client": "npm install --prefix client",
     "server": "npm run dev --prefix server",
+    "mcp": "node server/mcp.js",
     "client": "npm run dev --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "dev": "concurrently --names \"express,mcp,client\" \"npm run server\" \"npm run mcp\" \"npm run client\""
   },
   "keywords": [],
   "author": "",

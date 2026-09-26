@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "poko-developer-framework": {
+      "command": "node",
+      "args": ["${workspaceFolder}/server/mcp.js"],
+      "env": {}
+    }
+  }
+}

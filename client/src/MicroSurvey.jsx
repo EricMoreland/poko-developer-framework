@@ -89,6 +89,9 @@ export default function MicroSurvey({ date, questions, onSubmit, onDismiss }) {
               <p style={styles.questionText}>
                 <span style={styles.questionIndex}>{i + 1}.</span> {q.question}
               </p>
+              {q.reason && (
+                <p style={styles.reasonText}>{q.reason}</p>
+              )}
               {/* Spread the active style only when the matching value is selected.
                   Uses strict equality so null (unanswered) never activates either style. */}
               <div style={styles.buttonRow}>
@@ -265,6 +268,13 @@ const styles = {
     color: '#f87171',
     fontSize: '0.8rem',
     marginBottom: '10px',
+  },
+  reasonText: {
+    margin: '0 0 10px 0',
+    fontSize: '0.74rem',
+    color: '#57606a',
+    lineHeight: 1.45,
+    fontStyle: 'italic',
   },
   privacyNote: {
     textAlign: 'center',

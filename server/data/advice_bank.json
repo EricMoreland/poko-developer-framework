@@ -1,0 +1,92 @@
+[
+  {
+    "slot": "morning",
+    "trigger": { "metric": "Body_Battery", "operator": "<", "value": 40 },
+    "text": "Your body battery is critically low this morning. Start with 15 minutes of light movement and avoid scheduling your most cognitively demanding work before 10am — your prefrontal cortex needs more time to reach full operating capacity when recovery is this low.",
+    "category": "stress"
+  },
+  {
+    "slot": "morning",
+    "trigger": { "metric": "Overnight_HRV_ms_vs_baseline_pct", "operator": "<", "value": -0.10 },
+    "text": "Your HRV is more than 10% below your 7-day baseline this morning. Your autonomic nervous system is under load — prioritise single-threaded deep work over meetings or multitasking, and consider delaying any high-stakes decisions until after midday.",
+    "category": "stress"
+  },
+  {
+    "slot": "morning",
+    "trigger": { "metric": "Sleep_Score", "operator": "<", "value": 60 },
+    "text": "Your sleep quality was below 60 last night. Cognitive processing speed and working memory are measurably reduced today. Break complex tasks into smaller chunks, write down context before context-switching, and protect a 20-minute recovery window at midday.",
+    "category": "sleep"
+  },
+  {
+    "slot": "morning",
+    "trigger": { "metric": "Avg_Stress", "operator": ">", "value": 60 },
+    "text": "Yesterday's average stress was elevated. Your nervous system carried a significant allostatic load overnight. Eat within 30 minutes of waking to stabilise cortisol, and open your most important work before checking messages — reactive task mode will amplify the existing stress load.",
+    "category": "nutrition"
+  },
+  {
+    "slot": "morning",
+    "trigger": { "metric": "Respiration", "operator": ">", "value": 16 },
+    "text": "Your overnight respiration rate was elevated — an early physiological signal the body is under immune or inflammatory stress. Avoid high-caffeine intake today as it will amplify the sympathetic response, and consider a 5-minute box-breathing session before your first meeting.",
+    "category": "immune"
+  },
+  {
+    "slot": "midday",
+    "trigger": { "metric": "Body_Battery", "operator": "<", "value": 35 },
+    "text": "Your body battery is below 35 at midday — a level where reaction time and error rate begin to measurably increase. A 10–20 minute eyes-closed rest now recovers more capacity than 2 cups of coffee. Schedule your next demanding task for after 2pm.",
+    "category": "stress"
+  },
+  {
+    "slot": "midday",
+    "trigger": { "metric": "Avg_Stress", "operator": ">", "value": 55 },
+    "text": "Stress has been above moderate levels this morning. Eating a protein-and-complex-carb meal within the next 30 minutes prevents the glucose dip that compounds cognitive irritability and slows decision-making speed by up to 20% in the next 2 hours.",
+    "category": "nutrition"
+  },
+  {
+    "slot": "midday",
+    "trigger": { "metric": "Sleep_Score", "operator": "<", "value": 65 },
+    "text": "With last night's sleep quality below optimal, your hippocampal memory consolidation is running at reduced capacity today. Write down decisions and action items immediately — don't rely on working memory to hold context through the afternoon.",
+    "category": "sleep"
+  },
+  {
+    "slot": "midday",
+    "trigger": { "metric": "Overnight_HRV_ms_vs_baseline_pct", "operator": "<", "value": -0.08 },
+    "text": "Your HRV suppression from this morning typically deepens in the early afternoon. Front-load your most complex work in the next 90 minutes before the physiological dip at 2–3pm. If you have a code review or architectural decision queued, now is the right window.",
+    "category": "stress"
+  },
+  {
+    "slot": "afternoon",
+    "trigger": { "metric": "Body_Battery", "operator": "<", "value": 25 },
+    "text": "Your body battery is critically depleted for this time of day. Finishing cognitively demanding tasks now carries a significantly elevated error rate. If you must continue, work in 25-minute focused intervals with 5-minute breaks — your sustained attention span is currently limited to approximately 20 minutes.",
+    "category": "stress"
+  },
+  {
+    "slot": "afternoon",
+    "trigger": { "metric": "Avg_Stress", "operator": ">", "value": 70 },
+    "text": "Sustained high stress today has likely elevated your cortisol into the range where immune response is suppressed. Avoid intense exercise this evening — a 20-minute walk at a conversational pace is the most recovery-efficient activity at this stress level.",
+    "category": "immune"
+  },
+  {
+    "slot": "afternoon",
+    "trigger": { "metric": "Sleep_Score", "operator": "<", "value": 55 },
+    "text": "After a poor night's sleep, the afternoon is your highest-risk window for making errors in complex work. If possible, move administrative or low-stakes tasks to now and protect your morning peak tomorrow by committing to an earlier bedtime tonight.",
+    "category": "sleep"
+  },
+  {
+    "slot": "afternoon",
+    "trigger": { "metric": "Overnight_HRV_ms_vs_baseline_pct", "operator": "<", "value": -0.15 },
+    "text": "Your HRV has been suppressed more than 15% below baseline throughout the day — a signal of significant recovery debt. Prioritise winding down work by 6pm, avoid screen exposure after 8pm, and consider a magnesium supplement with dinner to support overnight nervous system recovery.",
+    "category": "sleep"
+  },
+  {
+    "slot": "morning",
+    "trigger": { "metric": "Resting_HR_bpm_vs_median", "operator": ">", "value": 4 },
+    "text": "Your resting heart rate is elevated above your personal baseline — often a leading indicator of physiological stress or the early stages of immune activation. Hydrate actively this morning (aim for 500ml before 10am) and keep your first 60 minutes of work lower-intensity to avoid compounding the cardiovascular load.",
+    "category": "immune"
+  },
+  {
+    "slot": "midday",
+    "trigger": { "metric": "Resting_HR_bpm_vs_median", "operator": ">", "value": 4 },
+    "text": "Your elevated resting HR from this morning suggests your body is managing background stress or early immune activation. A short walk at lunchtime (even 10 minutes) lowers cortisol and activates the parasympathetic response more effectively than coffee or a screen break.",
+    "category": "nutrition"
+  }
+]
