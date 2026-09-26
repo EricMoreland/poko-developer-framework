@@ -12,7 +12,7 @@ async function scanCommit() {
     const response = await fetch('http://localhost:3001/api/guardian/classify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskDescription: commitMsg, filesChanged })
+      body: JSON.stringify({ taskDescription: commitMsg, filesChanged, isCompromised: true })
     });
 
     if (!response.ok) return;

@@ -162,4 +162,4 @@ The Po-Ko web dashboard continues to work independently at `http://localhost:517
 | Advice not generating | Bob MCP unavailable | Falls back to static advice bank automatically |
 | Score doesn't update after survey | Date mismatch | Ensure the `date` parameter matches the most recent telemetry entry's date |
 
-test2
+test
