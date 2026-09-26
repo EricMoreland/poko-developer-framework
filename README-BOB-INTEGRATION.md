@@ -161,3 +161,5 @@ The Po-Ko web dashboard continues to work independently at `http://localhost:517
 | `get_poko_status` returns "No telemetry data" | No data in SQLite yet | Log at least one day via the dashboard "Log Today" button |
 | Advice not generating | Bob MCP unavailable | Falls back to static advice bank automatically |
 | Score doesn't update after survey | Date mismatch | Ensure the `date` parameter matches the most recent telemetry entry's date |
+
+test
