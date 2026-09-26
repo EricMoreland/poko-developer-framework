@@ -399,7 +399,7 @@ function App() {
                 labelStyle={{ color: '#6e7d8c', marginBottom: '4px' }}
               />
               {/* Dim grey baseline so the daily HRV line stands out against it */}
-              <Line type="monotone" dataKey="7d_Avg_HRV_ms" stroke="#21262d" strokeWidth={2} dot={false} name="7-Day Baseline" />
+              <Line yAxisId="left" type="monotone" dataKey="7d_Avg_HRV_ms" stroke="#21262d" strokeWidth={2} dot={false} name="7-Day Baseline" />
 
               {/* Daily HRV line — each dot is custom-rendered so its colour and
                   size encode two independent signals at a glance:
