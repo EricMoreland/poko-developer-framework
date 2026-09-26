@@ -28,6 +28,17 @@ function App() {
 
   // Get the most recent day's data for the top cards
   const today = telemetry[telemetry.length - 1] || {};
+  
+{/* 
+  // --- TEMPORARY TEST OVERRIDE ---
+today.poko_trend_boosted = true;
+today.poko_trend_details = {
+  reason: "TESTING: 72-Hour Rebound Rule triggered. HRV is in a sustained decline while stress is rising. Impending sickness pattern detected."
+};
+today.poko_risk_level = "HIGH";
+today.poko_score = 8.5;
+// -------------------------------
+*/}
 
   // Determine color based on Risk Level
   const getRiskColor = (level) => {
@@ -61,6 +72,29 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Active Trend Warning Banner */}
+      {today.poko_trend_boosted && (
+        <div className="trend-alert-banner" style={{
+          backgroundColor: 'rgba(220, 38, 38, 0.1)',
+          border: '1px solid #dc2626',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          margin: '0 0 20px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          color: '#fca5a5'
+        }}>
+          <ShieldAlert size={24} color="#ef4444" />
+          <div>
+            <h4 style={{ margin: 0, color: '#ef4444', fontSize: '1.1rem' }}>Sickness Prediction Alert</h4>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem' }}>
+              {today.poko_trend_details?.reason || "Impending sickness pattern detected. Please prioritize hydration and consider pacing your workload today."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Top Metric Cards */}
       <div className="metric-cards">

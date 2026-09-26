@@ -1,7 +1,9 @@
 /**
  * Po-Ko Predictive Scoring Engine
  * ─────────────────────────────────────────────────────────────────────────────
- * Exports a single function: calculatePoKoScore(dailyMetrics)
+ * Exports two functions:
+ *   • calculatePoKoScore(dailyMetrics)   – single-day risk score (unchanged API)
+ *   • analyzeTrend(historicalDataArray)  – 72-Hour Rebound Rule pattern detector
  *
  * Returns a Po-Ko Risk Score on a 1–10 integer scale:
  *   1–3  → LOW RISK    – Developer is recovered and cognitively ready.
@@ -122,22 +124,34 @@ function scoreSensorGap(sensorGapFlag) {
   return sensorGapFlag ? 10 : 0;
 }
 
+// ─── Constants (trend analysis) ──────────────────────────────────────────────
+
+/**
+ * Score boost applied to the most-recent day's Po-Ko score when the
+ * 72-Hour Rebound Rule fires. Kept as a named constant so it can be
+ * tuned independently of the single-day weight table.
+ */
+const TREND_BOOST = 1.5;
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Calculates the Po-Ko Risk Score for a single day's biometric entry.
  *
- * @param {object} dailyMetrics
+ * @param {object}  dailyMetrics
  * @param {number}  dailyMetrics.Overnight_HRV_ms  - Overnight HRV in milliseconds
  * @param {number}  dailyMetrics['7d_Avg_HRV_ms']  - 7-day rolling average HRV
  * @param {number}  dailyMetrics.Sleep_Score        - Garmin sleep score (0–100)
  * @param {number}  dailyMetrics.Avg_Stress         - Average stress score (0–100)
  * @param {boolean} dailyMetrics.Sensor_Gap_Flag    - True if sensor drop was detected
+ * @param {boolean} [dailyMetrics.trendWarning]     - Optional flag from analyzeTrend()
+ *                                                    Adds TREND_BOOST to raw score.
  *
  * @returns {{
  *   score: number,          // Final clamped Po-Ko score (1–10)
  *   components: object,     // Individual 0–10 sub-scores for transparency
- *   riskLevel: string       // Human-readable risk tier label
+ *   riskLevel: string,      // Human-readable risk tier label
+ *   trendBoosted: boolean   // True when the trend boost was applied
  * }}
  */
 export function calculatePoKoScore(dailyMetrics) {
@@ -147,6 +161,7 @@ export function calculatePoKoScore(dailyMetrics) {
     Sleep_Score,
     Avg_Stress,
     Sensor_Gap_Flag,
+    trendWarning = false, // ← NEW: injected from analyzeTrend(); defaults to false
   } = dailyMetrics;
 
   // --- Compute individual component penalties (each 0–10) ---
@@ -158,11 +173,14 @@ export function calculatePoKoScore(dailyMetrics) {
   };
 
   // --- Weighted sum ---
-  const rawScore =
+  let rawScore =
     components.hrv       * WEIGHTS.hrv +
     components.sleep     * WEIGHTS.sleep +
     components.stress    * WEIGHTS.stress +
     components.sensorGap * WEIGHTS.sensorGap;
+
+  // --- Apply 72-Hour Rebound Rule boost when pattern is active --- // ← NEW
+  if (trendWarning) rawScore += TREND_BOOST;
 
   // --- Clamp to [1, 10] and round to one decimal ---
   const score = Math.min(10, Math.max(1, Math.round(rawScore * 10) / 10));
@@ -175,5 +193,82 @@ export function calculatePoKoScore(dailyMetrics) {
   else if (score <= 9) riskLevel = 'HIGH';
   else                 riskLevel = 'CRITICAL';
 
-  return { score, components, riskLevel };
+  return { score, components, riskLevel, trendBoosted: trendWarning }; // ← NEW: trendBoosted added
+}
+
+/**
+ * 72-Hour Rebound Rule — multi-day pattern detector.
+ *
+ * Analyses the last 2–3 days of telemetry for the specific dual-signal pattern
+ * that precedes impending sickness:
+ *   • Overnight_HRV_ms is in a consecutive DOWNWARD trend across all entries.
+ *   • Avg_Stress       is in a consecutive UPWARD  trend across all entries.
+ *
+ * Both conditions must be true simultaneously; either alone is insufficient
+ * to raise the warning (e.g. a single hard workout drives HRV down but stress
+ * stays flat, so the flag does not fire).
+ *
+ * The array should be ordered oldest → newest (index 0 = oldest day,
+ * index n-1 = today). A minimum of 2 entries is required; if fewer are
+ * supplied the function returns no warning and explains why in `reason`.
+ *
+ * @param {Array<{Overnight_HRV_ms: number, Avg_Stress: number}>} historicalDataArray
+ *   Array of daily telemetry objects, ordered oldest → newest.
+ *   Each entry must contain at least `Overnight_HRV_ms` and `Avg_Stress`.
+ *
+ * @returns {{
+ *   impendingSicknessWarning: boolean, // True when the 72-Hour Rebound Rule fires
+ *   reason: string,                    // Human-readable explanation of the result
+ *   hrvTrend:    'FALLING' | 'FLAT/RISING' | 'INSUFFICIENT_DATA',
+ *   stressTrend: 'RISING'  | 'FLAT/FALLING' | 'INSUFFICIENT_DATA'
+ * }}
+ */
+export function analyzeTrend(historicalDataArray) {
+  // --- Guard: need at least 2 data points to establish a trend ---
+  if (!Array.isArray(historicalDataArray) || historicalDataArray.length < 2) {
+    return {
+      impendingSicknessWarning: false,
+      reason: 'Insufficient data: at least 2 days of telemetry are required.',
+      hrvTrend:    'INSUFFICIENT_DATA',
+      stressTrend: 'INSUFFICIENT_DATA',
+    };
+  }
+
+  // --- Check for strictly consecutive HRV decline (each day lower than the previous) ---
+  let hrvFalling = true;
+  for (let i = 1; i < historicalDataArray.length; i++) {
+    if (historicalDataArray[i].Overnight_HRV_ms >= historicalDataArray[i - 1].Overnight_HRV_ms) {
+      hrvFalling = false;
+      break;
+    }
+  }
+
+  // --- Check for strictly consecutive stress rise (each day higher than the previous) ---
+  let stressRising = true;
+  for (let i = 1; i < historicalDataArray.length; i++) {
+    if (historicalDataArray[i].Avg_Stress <= historicalDataArray[i - 1].Avg_Stress) {
+      stressRising = false;
+      break;
+    }
+  }
+
+  const hrvTrend    = hrvFalling    ? 'FALLING'      : 'FLAT/RISING';
+  const stressTrend = stressRising  ? 'RISING'       : 'FLAT/FALLING';
+  const impendingSicknessWarning = hrvFalling && stressRising;
+
+  let reason;
+  if (impendingSicknessWarning) {
+    reason =
+      `72-Hour Rebound Rule triggered over ${historicalDataArray.length} consecutive days: ` +
+      `HRV is in a sustained decline while stress is in a sustained rise. ` +
+      `Impending sickness pattern detected — Po-Ko score boosted by ${TREND_BOOST} points.`;
+  } else if (!hrvFalling && !stressRising) {
+    reason = 'No pattern: HRV is not in a consecutive decline and stress is not in a consecutive rise.';
+  } else if (!hrvFalling) {
+    reason = 'Partial pattern: stress is rising but HRV decline is not consecutive across all days.';
+  } else {
+    reason = 'Partial pattern: HRV is declining but stress rise is not consecutive across all days.';
+  }
+
+  return { impendingSicknessWarning, reason, hrvTrend, stressTrend };
 }

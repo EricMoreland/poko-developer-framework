@@ -3,7 +3,8 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { calculatePoKoScore } from './pokoScoring.js';
+import { calculatePoKoScore, analyzeTrend } from './pokoScoring.js';
+import { classifyCognitiveWeight } from './codeGuardian.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,25 +54,49 @@ app.get('/api/health', (req, res) => {
 // 2. GET Historical Biometric Telemetry
 // Usage: GET /api/telemetry or GET /api/telemetry?limit=30
 app.get('/api/telemetry', (req, res) => {
-  const history = readTelemetryData();
+  const rawHistory = readTelemetryData();
   const limit = parseInt(req.query.limit, 10);
 
+  // Assuming your JSON has newest at the top (Day_01 is yesterday), we reverse it first.
+  const history = [...rawHistory].reverse();
+
   // Map over the history to inject the calculated Po-Ko score for each day
-  const scoredHistory = history.map(dayData => {
-    const scoringResult = calculatePoKoScore(dayData);
+  const scoredHistory = history.map((dayData, index) => {
+
+    let trendWarning = false;
+    let trendDetails = {};
+
+    //Only run trend if we have at least 3 days
+    if (index >= 2) {
+      const last3Days = [
+        history[index - 2], // Oldest
+        history[index - 1], // Middle
+        history[index]      // Current day
+      ];
+      
+      const trendResult = analyzeTrend(last3Days);
+      trendWarning = trendResult.impendingSicknessWarning;
+      trendDetails = trendResult;
+    }
+
+    const scoringResult = calculatePoKoScore({...dayData, trendWarning: trendWarning});
     return {
       ...dayData,
       poko_score: scoringResult.score,
       poko_risk_level: scoringResult.riskLevel,
-      poko_components: scoringResult.components
+      poko_components: scoringResult.components,
+      poko_trend_boosted: scoringResult.trendBoosted,
+      poko_trend_details: trendDetails
     };
   });
+
+  const resultToSend = scoredHistory.reverse();
   
   if (!isNaN(limit) && limit > 0) {
-    return res.json(scoredHistory.slice(0, limit));
+    return res.json(resultToSend.slice(0, limit));
   }
   
-  res.json(scoredHistory);
+  res.json(resultToSend);
 });
 
 // 3. POST New Daily Biometric Entry (Manual / AI Log)
@@ -116,6 +141,49 @@ app.post('/api/telemetry', (req, res) => {
   } else {
     res.status(500).json({ error: 'Failed to write telemetry entry to disk.' });
   }
+});
+
+// 4. POST Cognitive Weight Classification (Code Guardian)
+// Payload: { taskDescription: string, filesChanged: number, isCompromised?: boolean }
+// If isCompromised is omitted, it is derived automatically from the most recent
+// telemetry entry: score >= 8 or riskLevel 'HIGH' | 'CRITICAL' → true.
+app.post('/api/guardian/classify', (req, res) => {
+  const { taskDescription, filesChanged, isCompromised: isCompromisedPayload } = req.body;
+
+  if (typeof taskDescription !== 'string' || taskDescription.trim() === '') {
+    return res.status(400).json({ error: 'taskDescription is required and must be a non-empty string.' });
+  }
+
+  if (filesChanged === undefined || isNaN(Number(filesChanged))) {
+    return res.status(400).json({ error: 'filesChanged is required and must be a number.' });
+  }
+
+  let isCompromised;
+
+  if (typeof isCompromisedPayload === 'boolean') {
+    // Caller explicitly provided the health state — use it directly.
+    isCompromised = isCompromisedPayload;
+  } else {
+    // Derive health state from the most recent telemetry entry.
+    const history = readTelemetryData();
+    const latestEntry = history[0]; // Array is stored newest-first
+
+    if (latestEntry) {
+      const { score, riskLevel } = calculatePoKoScore(latestEntry);
+      isCompromised = score >= 8 || riskLevel === 'HIGH' || riskLevel === 'CRITICAL';
+    } else {
+      // No telemetry on record — default to safe (not compromised).
+      isCompromised = false;
+    }
+  }
+
+  const result = classifyCognitiveWeight(
+    taskDescription,
+    Number(filesChanged),
+    isCompromised
+  );
+
+  res.json({ ...result, isCompromised });
 });
 
 app.listen(PORT, () => {
