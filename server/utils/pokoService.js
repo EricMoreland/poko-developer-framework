@@ -9,6 +9,7 @@ import { calculatePoKoScore, analyzeTrend } from '../pokoScoring.js';
 import {
   getTelemetry,
   getTelemetryByDate,
+  insertTelemetry,
   insertFactor,
   getFactorsForDate,
   getSickDays,

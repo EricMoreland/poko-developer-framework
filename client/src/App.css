@@ -1,152 +1,210 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Po-Ko Dashboard — UI v2
+   Palette inspired by IBM Bob IDE: deep navy base, cool slate surfaces,
+   IBM Blue accent (#0F62FE → softened to #3b82d4 for dark-mode legibility).
+   Design goal: spacious, calm, minimal cognitive load on the developer.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
-  background-color: #0f1115;
-  color: #e2e8f0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #0d1117;
+  color: #c9d1d9;
+  font-family: -apple-system, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ── Layout Shell ─────────────────────────────────────────────────────────── */
 .dashboard-container {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 3rem 2.5rem 4rem;
 }
 
+/* ── Header ───────────────────────────────────────────────────────────────── */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid #333;
-  padding-bottom: 1rem;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #1e2530;
 }
 
-.status-badge {
-  background-color: #1a202c;
-  border: 1px solid #4ade80;
-  color: #4ade80;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.metric-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.card {
-  background-color: #1e222a;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #333;
-}
-
-.card-icon {
-  margin-bottom: 1rem;
-}
-
-.text-red { color: #f87171; }
-.text-blue { color: #60a5fa; }
-.text-orange { color: #fb923c; }
-.text-yellow { color: #facc15; }
-
-.card h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-  color: #94a3b8;
-}
-
-.card-value {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #f8fafc;
-}
-
-.card-subtitle {
-  margin: 0.5rem 0 0 0;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-.chart-section {
-  background-color: #1e222a;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #333;
-}
-
-.chart-section h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-}
-
-/* Risk Score Circle Styles */
 .header-titles {
   display: flex;
   flex-direction: column;
+  gap: 0;
+}
+
+.dashboard-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e6edf3;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
 }
 
 .subtitle {
-  color: #94a3b8;
-  margin-top: -15px;
-  font-size: 1.1rem;
+  color: #6e7d8c;
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
+/* ── Score Circle ─────────────────────────────────────────────────────────── */
 .score-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 120px;
+  width: 128px;
+  height: 128px;
   border-radius: 50%;
-  border: 4px solid;
-  background-color: #1e222a;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  border: 3px solid;
+  background-color: #161b22;
+  flex-shrink: 0;
 }
 
 .score-value {
-  font-size: 2.5rem;
+  font-size: 2.6rem;
   font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .score-label {
-  font-size: 0.75rem;
-  color: #94a3b8;
+  font-size: 0.68rem;
+  color: #6e7d8c;
   text-transform: uppercase;
-  margin-top: 4px;
+  letter-spacing: 0.08em;
+  margin-top: 5px;
 }
 
 .score-level {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
   margin-top: 2px;
+  letter-spacing: 0.04em;
 }
 
-/* Full-viewport overlay shown while the initial data fetch resolves */
-.loading-screen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  font-size: 1.1rem;
-  color: #94a3b8;
+/* ── Status Badge ─────────────────────────────────────────────────────────── */
+.status-badge {
+  background-color: #161b22;
+  border: 1px solid #4ade80;
+  color: #4ade80;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-/* Wraps the Recharts ResponsiveContainer — explicit height prevents a 0px collapse */
+/* ── Metric Cards ─────────────────────────────────────────────────────────── */
+.metric-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.card {
+  background-color: #161b22;
+  padding: 1.75rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #1e2530;
+  transition: border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: #2d3748;
+}
+
+.card-icon {
+  margin-bottom: 1rem;
+  opacity: 0.85;
+}
+
+.text-red    { color: #f47067; }
+.text-blue   { color: #58a6ff; }
+.text-orange { color: #f0883e; }
+.text-yellow { color: #d29922; }
+
+.card h3 {
+  margin: 0 0 4px 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6e7d8c;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.card-value {
+  margin: 0.5rem 0 0 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e6edf3;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.card-subtitle {
+  margin: 0.4rem 0 0 0;
+  font-size: 0.8rem;
+  color: #4a5568;
+}
+
+/* Stress card left-accent */
+.alert-card {
+  border-left: 3px solid #d29922;
+}
+
+/* ── Chart Section ────────────────────────────────────────────────────────── */
+.chart-section {
+  background-color: #161b22;
+  padding: 2rem 1.75rem;
+  border-radius: 12px;
+  border: 1px solid #1e2530;
+  margin-bottom: 2.5rem;
+}
+
+.chart-section h2 {
+  margin: 0 0 1.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Explicit height so Recharts ResponsiveContainer never collapses */
 .chart-container {
   width: 100%;
   min-height: 300px;
 }
 
-/* Stress card visual modifier — adds a subtle amber left-border accent */
-.alert-card {
-  border-left: 3px solid #facc15;
+/* ── Loading Screen ───────────────────────────────────────────────────────── */
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1rem;
+  color: #4a5568;
+  letter-spacing: 0.04em;
 }
+
+/* ── Scrollbar (Webkit) ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0d1117; }
+::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #30363d; }

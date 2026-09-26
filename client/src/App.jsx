@@ -136,30 +136,32 @@ function App() {
         <div className="header-titles">
           <h1>Po-Ko Developer Capacity Framework</h1>
           <p className="subtitle">Proactive Care &amp; Risk Analytics</p>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b', maxWidth: '340px', lineHeight: 1.5 }}>
-            <span style={{ color: '#94a3b8', fontWeight: 600 }}>What's a Po-Ko score?</span>
-            {' '}A number from <strong style={{ color: '#f8fafc' }}>0–10</strong> that fuses your overnight HRV, sleep quality, stress, and self-reported factors into a single daily readiness signal.{' '}
-            <strong style={{ color: '#4ade80' }}>Low</strong> = well-recovered &amp; sharp.{' '}
-            <strong style={{ color: '#f87171' }}>High</strong> = strain detected - consider pacing your workload.
+          <p style={{ margin: '0', fontSize: '0.8rem', color: '#4a5568', maxWidth: '360px', lineHeight: 1.6 }}>
+            <span style={{ color: '#6e7d8c', fontWeight: 600 }}>What is a Po-Ko score?</span>
+            {' '}A number from <strong style={{ color: '#e6edf3' }}>0–10</strong> that fuses your overnight HRV, sleep quality, stress, and self-reported context into a single daily readiness signal.{' '}
+            <strong style={{ color: '#3fb950' }}>Low</strong> = well-recovered.{' '}
+            <strong style={{ color: '#f47067' }}>High</strong> = strain detected.
           </p>
         </div>
+
         {/* Header action buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           <button
             onClick={() => setShowLogModal(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '6px 14px',
+              padding: '7px 16px',
               borderRadius: '8px',
-              border: '1px solid #3b82d4',
-              backgroundColor: 'rgba(59, 130, 212, 0.1)',
-              color: '#3b82d4',
+              border: '1px solid #1f4068',
+              backgroundColor: 'rgba(88, 166, 255, 0.06)',
+              color: '#58a6ff',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              letterSpacing: '0.01em',
             }}
           >
             <ClipboardList size={14} />
@@ -167,8 +169,9 @@ function App() {
           </button>
           <SickDayButton />
         </div>
-        {/* The Po-Ko Risk Score Circle + breakdown toggle */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+
+        {/* Po-Ko Risk Score Circle + breakdown toggle */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <div className="score-container" style={{ borderColor: riskColor }}>
             <div className="score-value" style={{ color: riskColor }}>
               {today.poko_score || '--'}
@@ -181,19 +184,20 @@ function App() {
           <button
             onClick={() => setShowBreakdown((v) => !v)}
             style={{
-              background: showBreakdown ? 'rgba(59,130,212,0.15)' : 'rgba(59,130,212,0.08)',
-              border: '1px solid #3b82d4',
+              background: 'transparent',
+              border: '1px solid #21262d',
               borderRadius: '6px',
-              color: '#60a5fa',
-              fontSize: '0.75rem',
+              color: '#58a6ff',
+              fontSize: '0.72rem',
               fontWeight: 600,
               cursor: 'pointer',
-              padding: '4px 10px',
+              padding: '4px 12px',
               whiteSpace: 'nowrap',
-              transition: 'background 0.15s ease',
+              letterSpacing: '0.04em',
+              transition: 'border-color 0.15s ease',
             }}
           >
-            {showBreakdown ? 'hide breakdown ▴' : 'explain my score ▾'}
+            {showBreakdown ? 'hide breakdown ▴' : 'explain score ▾'}
           </button>
         </div>
       </header>
@@ -203,55 +207,52 @@ function App() {
 
       {/* Active Trend Warning Banner */}
       {today.poko_trend_boosted && (
-        <div className="trend-alert-banner" style={{
-          backgroundColor: 'rgba(220, 38, 38, 0.1)',
-          border: '1px solid #dc2626',
-          padding: '12px 16px',
-          borderRadius: '8px',
-          margin: '0 0 20px 0',
+        <div style={{
+          backgroundColor: 'rgba(248, 81, 73, 0.07)',
+          border: '1px solid rgba(248, 81, 73, 0.35)',
+          padding: '16px 20px',
+          borderRadius: '10px',
+          margin: '0 0 1.5rem 0',
           display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          color: '#fca5a5'
+          alignItems: 'flex-start',
+          gap: '14px',
+          color: '#c9d1d9',
         }}>
-          <ShieldAlert size={24} color="#ef4444" />
+          <ShieldAlert size={20} color="#f47067" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
-            <h4 style={{ margin: 0, color: '#ef4444', fontSize: '1.1rem' }}>Sickness Prediction Alert</h4>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem' }}>
-              {today.poko_trend_details?.reason || "Impending sickness pattern detected. Please prioritize hydration and consider pacing your workload today."}
-            </p>
-            <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: '#fca5a5', opacity: 0.8 }}>
-              Your HRV has been falling and stress rising for 2+ consecutive days - this pattern commonly precedes illness by 24-48 hours. Consider reducing cognitive load and prioritising sleep tonight.
+            <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: '#f47067', fontSize: '0.9rem' }}>Sickness Pattern Detected</p>
+            <p style={{ margin: 0, fontSize: '0.84rem', color: '#8b949e', lineHeight: 1.6 }}>
+              {today.poko_trend_details?.reason || 'HRV declining and stress rising over 2+ consecutive days. This pattern commonly precedes illness by 24–48 hours. Prioritise sleep and hydration today.'}
             </p>
           </div>
         </div>
       )}
 
-      {/* External Factors Badge — shown when survey data is active for today */}
+      {/* External Factors Badge */}
       {today.poko_external_applied && (
         <div style={{
-          backgroundColor: 'rgba(59, 130, 212, 0.08)',
-          border: '1px solid #3b82d4',
-          padding: '10px 16px',
-          borderRadius: '8px',
-          margin: '0 0 20px 0',
+          backgroundColor: 'rgba(88, 166, 255, 0.05)',
+          border: '1px solid rgba(88, 166, 255, 0.18)',
+          padding: '12px 18px',
+          borderRadius: '10px',
+          margin: '0 0 1.5rem 0',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          color: '#93c5fd',
-          fontSize: '0.85rem',
+          gap: '12px',
+          color: '#8b949e',
+          fontSize: '0.84rem',
         }}>
-          <ShieldAlert size={16} color="#3b82d4" />
+          <ShieldAlert size={16} color="#58a6ff" style={{ flexShrink: 0 }} />
           <span>
-            <strong style={{ color: '#3b82d4' }}>External factors active</strong>
-            {' - '}
+            <strong style={{ color: '#58a6ff' }}>External factors active</strong>
+            {' — '}
             {today.poko_external_factors?.activeFactors?.join(', ') || 'self-reported data'}
             {' contributing '}
-            <strong>+{today.poko_external_factors?.totalPenalty?.toFixed(1)}</strong>
+            <strong style={{ color: '#c9d1d9' }}>+{today.poko_external_factors?.totalPenalty?.toFixed(1)}</strong>
             {' to score.'}
             {today.poko_external_factors?.activeCompounds?.length > 0 && (
-              <span style={{ color: '#f87171' }}>
-                {' '}Compound risk detected: {today.poko_external_factors.activeCompounds.join(', ')}.
+              <span style={{ color: '#f47067' }}>
+                {' '}Compound risk: {today.poko_external_factors.activeCompounds.join(', ')}.
               </span>
             )}
           </span>
@@ -278,17 +279,18 @@ function App() {
 
       {/* Retrigger survey if dismissed */}
       {surveyDismissed && surveyQuestions.length > 0 && (
-        <div style={{ textAlign: 'right', marginBottom: '12px' }}>
+        <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
           <button
             onClick={() => { setShowSurvey(true); setSurveyDismissed(false); }}
             style={{
               background: 'none',
-              border: '1px solid #333',
+              border: '1px solid #21262d',
               borderRadius: '6px',
-              color: '#888',
+              color: '#6e7d8c',
               fontSize: '0.78rem',
-              padding: '4px 10px',
+              padding: '5px 12px',
               cursor: 'pointer',
+              letterSpacing: '0.02em',
             }}
           >
             Answer today's check-in →
@@ -308,12 +310,12 @@ function App() {
               scoreImpactDescription={METRIC_EXPLANATIONS.hrv.scoreImpactDescription}
             />
           </div>
-          <h3 style={{ marginTop: '0.75rem' }}>Overnight HRV</h3>
-          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+          <h3 style={{ marginTop: '1rem' }}>Overnight HRV</h3>
+          <p style={{ margin: '0 0 6px 0', fontSize: '0.78rem', color: '#4a5568', lineHeight: 1.5 }}>
             {METRIC_EXPLANATIONS.hrv.subtitle}
           </p>
-          <p className="card-value">{today.Overnight_HRV_ms || '--'} ms</p>
-          <p className="card-subtitle">Baseline: {today['7d_Avg_HRV_ms']} ms</p>
+          <p className="card-value">{today.Overnight_HRV_ms || '--'} <span style={{ fontSize: '1rem', fontWeight: 400, color: '#6e7d8c' }}>ms</span></p>
+          <p className="card-subtitle">7-day baseline: {today['7d_Avg_HRV_ms']} ms</p>
         </div>
 
         <div className="card">
@@ -326,11 +328,11 @@ function App() {
               scoreImpactDescription={METRIC_EXPLANATIONS.sleep.scoreImpactDescription}
             />
           </div>
-          <h3 style={{ marginTop: '0.75rem' }}>Sleep Quality</h3>
-          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+          <h3 style={{ marginTop: '1rem' }}>Sleep Quality</h3>
+          <p style={{ margin: '0 0 6px 0', fontSize: '0.78rem', color: '#4a5568', lineHeight: 1.5 }}>
             {METRIC_EXPLANATIONS.sleep.subtitle}
           </p>
-          <p className="card-value">{today.Sleep_Score || '--'} / 100</p>
+          <p className="card-value">{today.Sleep_Score || '--'} <span style={{ fontSize: '1rem', fontWeight: 400, color: '#6e7d8c' }}>/100</span></p>
           <p className="card-subtitle">{today.Sleep_Quality}</p>
         </div>
 
@@ -344,12 +346,12 @@ function App() {
               scoreImpactDescription={METRIC_EXPLANATIONS.timeInBed.scoreImpactDescription}
             />
           </div>
-          <h3 style={{ marginTop: '0.75rem' }}>Time in Bed</h3>
-          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+          <h3 style={{ marginTop: '1rem' }}>Time in Bed</h3>
+          <p style={{ margin: '0 0 6px 0', fontSize: '0.78rem', color: '#4a5568', lineHeight: 1.5 }}>
             {METRIC_EXPLANATIONS.timeInBed.subtitle}
           </p>
-          <p className="card-value">{today.Time_In_Bed_Minutes ? Math.round(today.Time_In_Bed_Minutes / 60 * 10) / 10 : '--'} hrs</p>
-          <p className="card-subtitle">Unrecorded Gap: {today.Unrecorded_Gaps_Minutes || 0} mins</p>
+          <p className="card-value">{today.Time_In_Bed_Minutes ? Math.round(today.Time_In_Bed_Minutes / 60 * 10) / 10 : '--'} <span style={{ fontSize: '1rem', fontWeight: 400, color: '#6e7d8c' }}>hrs</span></p>
+          <p className="card-subtitle">Gap: {today.Unrecorded_Gaps_Minutes || 0} min unrecorded</p>
         </div>
 
         <div className="card alert-card">
@@ -362,38 +364,42 @@ function App() {
               scoreImpactDescription={METRIC_EXPLANATIONS.stress.scoreImpactDescription}
             />
           </div>
-          <h3 style={{ marginTop: '0.75rem' }}>Avg Daily Stress</h3>
-          <p style={{ margin: '0 0 4px 0', fontSize: '0.78rem', color: '#57606a', lineHeight: 1.4 }}>
+          <h3 style={{ marginTop: '1rem' }}>Avg Daily Stress</h3>
+          <p style={{ margin: '0 0 6px 0', fontSize: '0.78rem', color: '#4a5568', lineHeight: 1.5 }}>
             {METRIC_EXPLANATIONS.stress.subtitle}
           </p>
-          <p className="card-value">{today.Avg_Stress || '--'}</p>
-          <p className="card-subtitle">Max 100</p>
+          <p className="card-value">{today.Avg_Stress || '--'} <span style={{ fontSize: '1rem', fontWeight: 400, color: '#6e7d8c' }}>/100</span></p>
+          <p className="card-subtitle">Daily average stress index</p>
         </div>
       </div>
 
       {/* 30-Day HRV Trend Chart */}
       <div className="chart-section">
-        <h2>30-Day Recovery Trend (Overnight HRV vs Baseline)</h2>
+        <h2>30-Day Recovery Trend — HRV vs Baseline</h2>
         <div className="chart-container">
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={telemetry} margin={{ top: 30, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+            <LineChart data={telemetry} margin={{ top: 30, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e2530" />
               <XAxis
                 dataKey="Date"
-                stroke="#888"
+                stroke="#4a5568"
+                tick={{ fontSize: 11, fill: '#4a5568' }}
+                tickLine={false}
+                axisLine={{ stroke: '#21262d' }}
                 tickFormatter={(dateStr) => {
                   const date = new Date(dateStr);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
                 }}
               />
               {/* yAxisId="left" matches the id on the Overnight HRV Line below */}
-              <YAxis yAxisId="left" stroke="#888" domain={['dataMin - 10', 'dataMax + 10']} />
+              <YAxis yAxisId="left" stroke="#4a5568" tick={{ fontSize: 11, fill: '#4a5568' }} tickLine={false} axisLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#222', border: 'none', borderRadius: '8px' }}
-                itemStyle={{ color: '#fff' }}
+                contentStyle={{ backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', fontSize: '0.82rem' }}
+                itemStyle={{ color: '#c9d1d9' }}
+                labelStyle={{ color: '#6e7d8c', marginBottom: '4px' }}
               />
               {/* Dim grey baseline so the daily HRV line stands out against it */}
-              <Line type="monotone" dataKey="7d_Avg_HRV_ms" stroke="#555" strokeWidth={2} dot={false} name="7-Day Baseline" />
+              <Line type="monotone" dataKey="7d_Avg_HRV_ms" stroke="#21262d" strokeWidth={2} dot={false} name="7-Day Baseline" />
 
               {/* Daily HRV line — each dot is custom-rendered so its colour and
                   size encode two independent signals at a glance:
@@ -415,25 +421,21 @@ function App() {
                       <polygon
                         key={key}
                         points={`${cx},${cy - 9} ${cx + 7},${cy} ${cx},${cy + 9} ${cx - 7},${cy}`}
-                        fill="#dc2626"
-                        stroke="#fca5a5"
+                        fill="#f47067"
+                        stroke="#30363d"
                         strokeWidth={1.5}
                       />
                     );
                   }
-                  // Blue stroke ring signals that self-reported external factors
-                  // (e.g. alcohol, travel) were fused into this day's score.
+                  // Blue ring when external factors were fused into this day's score
                   const hasExternal = payload.poko_external_applied;
                   if (payload.poko_score >= 8) {
-                    // HIGH / CRITICAL — red dot, slightly enlarged when external factors present
-                    return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 8 : 6} fill="#dc2626" stroke={hasExternal ? '#3b82d4' : '#7f1d1d'} strokeWidth={2} />;
+                    return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 8 : 5} fill="#f47067" stroke={hasExternal ? '#58a6ff' : '#30363d'} strokeWidth={2} />;
                   }
                   if (payload.poko_score >= 6) {
-                    // ELEVATED — orange dot
-                    return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 7 : 5} fill="#fb923c" stroke={hasExternal ? '#3b82d4' : '#9a3412'} strokeWidth={2} />;
+                    return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 7 : 5} fill="#f0883e" stroke={hasExternal ? '#58a6ff' : '#30363d'} strokeWidth={2} />;
                   }
-                  // LOW / GUARDED — green dot; no stroke unless external factors active
-                  return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 6 : 4} fill="#4ade80" stroke={hasExternal ? '#3b82d4' : 'none'} strokeWidth={hasExternal ? 2 : 0} />;
+                  return <circle key={key} cx={cx} cy={cy} r={hasExternal ? 6 : 4} fill="#3fb950" stroke={hasExternal ? '#58a6ff' : 'none'} strokeWidth={hasExternal ? 2 : 0} />;
                 }}
                 activeDot={{ r: 8 }}
               />
