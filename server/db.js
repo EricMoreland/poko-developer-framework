@@ -223,8 +223,34 @@ export function insertTelemetry(entry) {
       @Stress_High_Minutes, @Time_In_Bed_Minutes, @Unrecorded_Gaps_Minutes, @Sensor_Gap_Flag
     )
   `).run({
+    Day:                     null,
+    Date:                    null,
+    Sleep_Score:             null,
+    Sleep_RHR:               null,
+    Body_Battery:            null,
+    Pulse_Ox:                null,
+    Respiration:             null,
+    Sleep_HRV_Status:        null,
+    Sleep_Quality:           null,
+    Sleep_Duration_Minutes:  null,
+    Sleep_Need_Minutes:      null,
+    Bedtime_Decimal:         null,
+    Wake_Time_Decimal:       null,
+    Overnight_HRV_ms:        null,
+    Baseline_Low_ms:         null,
+    Baseline_High_ms:        null,
+    Resting_HR_bpm:          null,
+    High_HR_bpm:             null,
+    Avg_Stress:              null,
+    Stress_Rest_Minutes:     null,
+    Stress_Low_Minutes:      null,
+    Stress_Medium_Minutes:   null,
+    Stress_High_Minutes:     null,
+    Time_In_Bed_Minutes:     null,
+    Unrecorded_Gaps_Minutes: null,
+    Sensor_Gap_Flag:         0,
     ...entry,
-    avg_hrv: entry['7d_Avg_HRV_ms'],
+    avg_hrv: entry['7d_Avg_HRV_ms'] ?? null,
     Sensor_Gap_Flag: entry.Sensor_Gap_Flag ? 1 : 0,
   });
 }
@@ -305,6 +331,16 @@ export function insertSickDay(date, loggedAt) {
   } catch {
     return false; // UNIQUE constraint — already exists
   }
+}
+
+/**
+ * Removes a sick day entry. Returns false if it did not exist.
+ * @param {string} date  YYYY-MM-DD
+ * @returns {boolean}
+ */
+export function deleteSickDay(date) {
+  const result = db.prepare("DELETE FROM sick_days WHERE date = ?").run(date);
+  return result.changes > 0;
 }
 
 // ─── Daily Advice helpers ─────────────────────────────────────────────────────

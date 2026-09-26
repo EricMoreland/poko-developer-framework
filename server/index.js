@@ -15,6 +15,7 @@ import {
   getSickDays,
   isSickDay,
   insertSickDay,
+  deleteSickDay,
   getAdviceByDate,
   insertAdvice,
 } from './db.js';
@@ -266,6 +267,17 @@ app.post('/api/sick-day', (req, res) => {
   }
 
   res.status(201).json({ message: 'Sick day logged.', entry: { date } });
+});
+
+app.delete('/api/sick-day', (req, res) => {
+  const date = req.body?.date || new Date().toISOString().slice(0, 10);
+
+  const ok = deleteSickDay(date);
+  if (!ok) {
+    return res.status(404).json({ error: `No sick day found for ${date}.` });
+  }
+
+  res.json({ message: 'Sick day removed.', date });
 });
 
 app.get('/api/sick-day/today', (req, res) => {

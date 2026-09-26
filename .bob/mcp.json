@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "node",
+      "args": ["server.js"],
+      "cwd": "/path/to/project",
+      "env": {
+        "API_KEY": "your_key_here"
+      },
+      "alwaysAllow": ["tool_name_to_auto_approve"],
+      "disabled": false
+    }
+  }
+}

@@ -4,13 +4,13 @@ import { Thermometer } from 'lucide-react';
 /**
  * SickDayButton
  * ─────────────────────────────────────────────────────────────────────────────
- * A single-action button that logs today as a sick day.
- * Shows "🤒 I'm sick today" if not yet logged, "Sick day logged ✓" once confirmed.
- * Disabled after logging to prevent duplicate submissions.
+ * Toggles a sick day on/off for today.
+ * • Clicking when not sick → POST /api/sick-day  (logs sick day)
+ * • Clicking when sick    → DELETE /api/sick-day (removes it)
  */
 export default function SickDayButton() {
-  const [isSick, setIsSick]       = useState(false);
-  const [loading, setLoading]     = useState(true);
+  const [isSick, setIsSick]         = useState(false);
+  const [loading, setLoading]       = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -22,19 +22,34 @@ export default function SickDayButton() {
   }, []);
 
   async function handleClick() {
-    if (isSick || submitting) return;
+    if (submitting) return;
     setSubmitting(true);
+    const today = new Date().toISOString().slice(0, 10);
+
     try {
-      const res = await fetch('/api/sick-day', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: new Date().toISOString().slice(0, 10) }),
-      });
-      if (res.ok || res.status === 409) {
-        setIsSick(true);
+      if (isSick) {
+        // Toggle OFF — remove sick day
+        const res = await fetch('/api/sick-day', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: today }),
+        });
+        if (res.ok || res.status === 404) {
+          setIsSick(false);
+        }
+      } else {
+        // Toggle ON — log sick day
+        const res = await fetch('/api/sick-day', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: today }),
+        });
+        if (res.ok || res.status === 409) {
+          setIsSick(true);
+        }
       }
     } catch {
-      // Silently fail — button returns to idle state
+      // Silently fail — state stays as-is
     } finally {
       setSubmitting(false);
     }
@@ -45,7 +60,7 @@ export default function SickDayButton() {
   return (
     <button
       onClick={handleClick}
-      disabled={isSick || submitting}
+      disabled={submitting}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -57,15 +72,16 @@ export default function SickDayButton() {
         color: isSick ? '#4ade80' : '#f87171',
         fontSize: '0.82rem',
         fontWeight: 600,
-        cursor: isSick ? 'default' : 'pointer',
+        cursor: submitting ? 'default' : 'pointer',
         whiteSpace: 'nowrap',
         opacity: submitting ? 0.6 : 1,
         transition: 'all 0.15s ease',
       }}
-      aria-label={isSick ? 'Sick day already logged for today' : 'Log today as a sick day'}
+      aria-label={isSick ? 'Remove sick day for today' : 'Log today as a sick day'}
+      title={isSick ? 'Click to remove sick day' : 'Click to log sick day'}
     >
       <Thermometer size={14} />
-      {isSick ? 'Sick day logged ✓' : submitting ? 'Logging…' : "I'm sick today"}
+      {submitting ? '…' : isSick ? 'Sick day logged ✓' : "I'm sick today"}
     </button>
   );
 }

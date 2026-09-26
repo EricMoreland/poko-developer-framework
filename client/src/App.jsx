@@ -175,13 +175,16 @@ function App() {
           <button
             onClick={() => setShowBreakdown((v) => !v)}
             style={{
-              background: 'none',
-              border: 'none',
-              color: '#57606a',
-              fontSize: '0.72rem',
+              background: showBreakdown ? 'rgba(59,130,212,0.15)' : 'rgba(59,130,212,0.08)',
+              border: '1px solid #3b82d4',
+              borderRadius: '6px',
+              color: '#60a5fa',
+              fontSize: '0.75rem',
+              fontWeight: 600,
               cursor: 'pointer',
-              padding: 0,
+              padding: '4px 10px',
               whiteSpace: 'nowrap',
+              transition: 'background 0.15s ease',
             }}
           >
             {showBreakdown ? 'hide breakdown ▴' : 'explain my score ▾'}

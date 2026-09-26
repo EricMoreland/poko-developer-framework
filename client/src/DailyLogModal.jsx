@@ -70,8 +70,12 @@ export default function DailyLogModal({ onClose, onSubmit }) {
       });
 
       if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || 'Submission failed');
+        let message = 'Submission failed';
+        try {
+          const body = await res.json();
+          message = body.error || message;
+        } catch { /* response was not JSON (e.g. HTML error page) */ }
+        throw new Error(message);
       }
 
       const data = await res.json();
