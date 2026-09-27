@@ -149,7 +149,39 @@ Logs daily wearable telemetry metrics directly into SQLite from the AI prompt wi
 
 ## Web dashboard
 
-The Po-Ko web dashboard continues to work independently at `http://localhost:5173` (Vite dev server). The MCP server and Express API share the same SQLite database, so any data entered via the dashboard is immediately visible via MCP tools and vice versa.
+The Po-Ko web dashboard continues to work independently at `http://localhost:3000` (Vite dev server). The MCP server and Express API share the same SQLite database, so any data entered via the dashboard is immediately visible via MCP tools and vice versa.
+
+For the IBM Bob hackathon setup, public deployment notes, and three-minute demo script, see [DEMO-SUBMISSION-GUIDE.md](DEMO-SUBMISSION-GUIDE.md).
+
+## Code Guardian commit flags
+
+IBM Bob's Source Control commit action uses the repository's Git hooks. The `commit-msg` hook calls the local Guardian API and appends these trailers whenever today's Po-Ko score is in the active high-risk state. The cognitive-load classification is recorded for context, but a small commit is still flagged when the developer's health state is high risk:
+
+```text
+Po-Ko-Flag: ACTIVE SUPPORT STATE
+Po-Ko-Context: Active Support State
+Po-Ko-Score: 8.0/10 (HIGH)
+Po-Ko-Cognitive-Load: MEDIUM
+Po-Ko-Guidance: ...
+```
+
+Manual setup from the repository root:
+
+```powershell
+npm install
+npm run install:server
+node server/index.js
+```
+
+Fresh installations start with an empty local database. The legacy JSON demo migration is disabled by default. To use a private demo dataset on the demo machine only, set `POKO_SEED_DEMO_DATA=true` before starting the server.
+
+Leave the server running and verify that `.husky/commit-msg` contains:
+
+```text
+node server/commit-hook.js "$1"
+```
+
+After that, commit normally from Bob's Source Control view. The hook is fail-open: if the local API is unavailable, the commit proceeds without a Po-Ko trailer. The hook can be pointed at another local API URL with `POKO_GUARDIAN_URL`.
 
 ---
 
@@ -161,5 +193,3 @@ The Po-Ko web dashboard continues to work independently at `http://localhost:517
 | `get_poko_status` returns "No telemetry data" | No data in SQLite yet | Log at least one day via the dashboard "Log Today" button |
 | Advice not generating | Bob MCP unavailable | Falls back to static advice bank automatically |
 | Score doesn't update after survey | Date mismatch | Ensure the `date` parameter matches the most recent telemetry entry's date |
-
-Final Test
