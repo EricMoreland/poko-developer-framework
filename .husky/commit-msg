@@ -1,0 +1,1 @@
+node server/commit-hook.js "$1"

@@ -154,55 +154,28 @@ app.post('/api/guardian/classify', (req, res) => {
     return res.status(400).json({ error: 'taskDescription is required and must be a non-empty string.' });
   }
 
-  if (
-  filesChanged === undefined ||
-  !Number.isFinite(Number(filesChanged)) ||
-  Number(filesChanged) < 0
-) {
-  return res.status(400).json({ error: 'filesChanged is required and must be a number.' });
-}
-
-let isCompromised;
-let pokoScore = null;
-let pokoRiskLevel = null;
-let dateUsed = null;
-
-if (typeof isCompromisedPayload === 'boolean') {
-  isCompromised = isCompromisedPayload;
-} else {
-  dateUsed = new Date().toISOString().slice(0, 10);
-  const currentEntry = getTelemetryByDate(dateUsed);
-
-  if (currentEntry) {
-    const externalEntry = getFactorsForDate(currentEntry.Date);
-    const externalFactors = externalEntry ? externalEntry.factors : null;
-    const scoringResult = calculatePoKoScore(currentEntry, externalFactors);
-
-    pokoScore = scoringResult.score;
-    pokoRiskLevel = scoringResult.riskLevel;
-
-    isCompromised =
-      pokoScore >= 8 ||
-      pokoRiskLevel === 'HIGH' ||
-      pokoRiskLevel === 'CRITICAL';
-  } else {
-    isCompromised = false;
+  if (filesChanged === undefined || isNaN(Number(filesChanged))) {
+    return res.status(400).json({ error: 'filesChanged is required and must be a number.' });
   }
-}
 
-const result = classifyCognitiveWeight(
-  taskDescription,
-  Number(filesChanged),
-  isCompromised
-);
+  let isCompromised;
+  if (typeof isCompromisedPayload === 'boolean') {
+    isCompromised = isCompromisedPayload;
+  } else {
+    const history = getTelemetry();
+    const latestEntry = history[0];
+    if (latestEntry) {
+      const externalEntry  = getFactorsForDate(latestEntry.Date);
+      const externalFactors = externalEntry ? externalEntry.factors : null;
+      const { score, riskLevel } = calculatePoKoScore(latestEntry, externalFactors);
+      isCompromised = score >= 8 || riskLevel === 'HIGH' || riskLevel === 'CRITICAL';
+    } else {
+      isCompromised = false;
+    }
+  }
 
-res.json({
-  ...result,
-  isCompromised,
-  pokoScore,
-  pokoRiskLevel,
-  dateUsed,
-});
+  const result = classifyCognitiveWeight(taskDescription, Number(filesChanged), isCompromised);
+  res.json({ ...result, isCompromised });
 });
 
 // ─── Survey Endpoints ─────────────────────────────────────────────────────────

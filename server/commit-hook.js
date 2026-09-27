@@ -1,31 +1,85 @@
 import fs from 'fs';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
-// Husky passes the commit message file path as the first argument
 const commitMsgFile = process.argv[2];
+const GUARDIAN_URL =
+  process.env.POKO_GUARDIAN_URL ||
+  'http://localhost:3001/api/guardian/classify';
+
+function getStagedFileCount() {
+  const output = execFileSync(
+    'git',
+    ['diff', '--cached', '--name-only'],
+    {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }
+  );
+
+  return output.split(/\r?\n/).filter(Boolean).length;
+}
+
+function appendFlag({ score, riskLevel, classification, guidance }) {
+  return [
+    'Po-Ko-Flag: ACTIVE SUPPORT STATE',
+    'Po-Ko-Context: Active Support State',
+    `Po-Ko-Score: ${score}/10 (${riskLevel})`,
+    `Po-Ko-Cognitive-Load: ${classification}`,
+    `Po-Ko-Guidance: ${guidance.replace(/\s+/g, ' ').trim()}`,
+  ].join('\n');
+}
 
 async function scanCommit() {
-  try {
-    const commitMsg = fs.readFileSync(commitMsgFile, 'utf-8');
-    const filesChanged = parseInt(execSync('git diff --cached --name-only | wc -l').toString().trim(), 10) || 1;
+  if (!commitMsgFile) return;
 
-    const response = await fetch('http://localhost:3001/api/guardian/classify', {
+  try {
+    const originalMessage = fs.readFileSync(commitMsgFile, 'utf8');
+    const filesChanged = getStagedFileCount();
+
+    const response = await fetch(GUARDIAN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskDescription: commitMsg, filesChanged, isCompromised: true })
+      body: JSON.stringify({
+        taskDescription: originalMessage,
+        filesChanged,
+      }),
     });
 
     if (!response.ok) return;
 
     const result = await response.json();
 
-    if (result.flagForTraceability) {
-      const flagMetadata = `\n\n⚠️ [PO-KO-FLAG: ${result.classification} COGNITIVE LOAD]\nContext: Active Support State\nGuidance: ${result.routingAction}`;
-      fs.appendFileSync(commitMsgFile, flagMetadata);
-      console.warn('\n🛡️ Po-Ko Code Guardian: Fatigue-Risk Flag automatically appended to your commit message.\n');
+    if (
+      !result.isCompromised ||
+      originalMessage.includes('Po-Ko-Flag:')
+    ) {
+      return;
     }
+
+    const flag = appendFlag({
+      score: result.pokoScore ?? 'unknown',
+      riskLevel: result.pokoRiskLevel ?? 'unknown',
+      classification: result.classification ?? 'UNKNOWN',
+      guidance:
+        result.routingAction ||
+        'Request secondary review and consider an elevated post-merge audit.',
+    });
+
+    const separator = originalMessage.endsWith('\n') ? '\n' : '\n\n';
+
+    fs.writeFileSync(
+      commitMsgFile,
+      `${originalMessage}${separator}${flag}\n`,
+      'utf8'
+    );
+
+    console.warn(
+      'Po-Ko Code Guardian: high cognitive-load flag appended to commit message.'
+    );
   } catch (err) {
-    // Fails silently if the server isn't running
+    console.warn(
+      `Po-Ko Code Guardian: scan skipped (${err.message}).`
+    );
   }
 }
 
