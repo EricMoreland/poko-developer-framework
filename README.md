@@ -124,7 +124,6 @@ The Express API, SQLite database, IBM Bob MCP server, and Git hook remain local 
 ## Documentation
 
 - [DEMO-SUBMISSION-GUIDE.md](DEMO-SUBMISSION-GUIDE.md) - judge setup and complete integration walkthrough.
-- [VIDEO-DEMO-RUNBOOK.md](VIDEO-DEMO-RUNBOOK.md) - concise recording script.
 - [README-BOB-INTEGRATION.md](README-BOB-INTEGRATION.md) - IBM Bob MCP tools and prompts.
 - [DATA_SOURCES.md](DATA_SOURCES.md) - data and scoring context.
 
