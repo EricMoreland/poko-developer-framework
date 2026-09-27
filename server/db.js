@@ -95,6 +95,11 @@ function migrateIfNeeded() {
   const count = db.prepare('SELECT COUNT(*) AS n FROM telemetry').get().n;
   if (count > 0) return; // Already migrated
 
+  if (process.env.POKO_SEED_DEMO_DATA !== 'true') {
+    console.log('[db] Empty database ready — demo seed migration is disabled.');
+    return;
+  }
+
   console.log('[db] Empty telemetry table — running one-time JSON → SQLite migration…');
 
   // --- Telemetry ---

@@ -4,3 +4,9 @@ dist/
 .env.local
 *.log
 .DS_Store
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+server/data/sanitized_telemetry_with_sensor_gap_analysis.json
+server/data/learning_insights.json
+server/data/sick_days.json
